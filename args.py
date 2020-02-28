@@ -13,6 +13,7 @@ class Arguments:
         self.eval_log_path = "log/eval_transformer_{:%Y-%m-%d_%H-%M-%S}.log".format(datetime.now())
         self.sum_path = "runs/slr_transformer_{:%Y-%m-%d_%H-%M-%S}".format(datetime.now())
         self.resume_model = None
+        # self.resume_model = "/home/liweijie/projects/SLR/checkpoint/3dres+transformer_phoenix_best.pth.tar"
         self.eval_checkpoint = "./checkpoint/slr_transformer_epoch001.pth"
 
         # Hyperparams
@@ -29,4 +30,4 @@ class Arguments:
         self.model_type = '3dres+transformer'
         self.store_name = '_'.join([self.model_type,self.dataset])
         self.device_list = '0,2'
-        self.log_interval = 10
+        self.log_interval = 100

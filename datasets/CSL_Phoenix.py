@@ -53,6 +53,8 @@ class CSL_Phoenix(Dataset):
             sentence = self.process_sentence(sentence)
             record = Record(frame_path,sentence)
             self.data_list.append(record)
+        # Temporarily setting
+        # self.data_list = self.data_list[:100]
 
     def read_images(self, frame_path):
         # 由于phoenix神奇的数据集文件结构

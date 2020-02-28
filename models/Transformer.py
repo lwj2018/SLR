@@ -118,7 +118,7 @@ class CSL_Transformer(nn.Module):
         tgt = self.dropout(self.pos_encoder(tgt))
         for i in range(max_len-1):
             out = model.decoder.forward(tgt, memory, 
-                            tgt_mask=None,
+                            tgt_mask=self.get_square_subsequent_mask(tgt),
                             memory_mask=None)
             prob = self.out(out)
             next_word = torch.argmax(prob, dim = 2)
@@ -126,11 +126,9 @@ class CSL_Transformer(nn.Module):
             ys = torch.cat([ys,
                             torch.ones(1, 1, dtype=torch.long).fill_(next_word.squeeze()).cuda()], dim=0)
             if next_word == 1:
-                print("ha")
                 break
             tgt = self.embedding(ys) * math.sqrt(self.d_model)
             tgt = self.dropout(self.pos_encoder(tgt))
-        print(ys.t())
         one_hot = torch.zeros(ys.size()[0],self.vocab_size).cuda().scatter_(1,ys,1)
         return one_hot
 

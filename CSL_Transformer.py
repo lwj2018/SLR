@@ -19,7 +19,7 @@ from utils.ioUtils import save_checkpoint, resume_model
 args = Arguments()
 
 # Log to file
-logging.basicConfig(level=logging.INFO, format='%(message)s', handlers=[logging.FileHandler(args.log_path), logging.StreamHandler()])
+logging.basicConfig(level=logging.INFO, format='%(message)s', handlers=[logging.FileHandler(args.log_path)])
 logger = logging.getLogger('SLR')
 logger.info('Logging to file...')
 

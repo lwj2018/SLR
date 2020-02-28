@@ -17,7 +17,7 @@ def build_dictionary(files):
 
     # Create a dictionary which maps tokens to indices (train contains all the training sentences)
     freq_list = Counter()
-    punctuation = ['_','NULL']
+    punctuation = ['_','NULL','ON','OFF','EMOTION','LEFTHAND','IX','PU']
     for sentence in train:
         sentence = [tok.text for tok in lang_model.tokenizer(sentence) if not tok.text in punctuation]
         freq_list.update(sentence)

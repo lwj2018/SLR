@@ -22,7 +22,7 @@ class AverageMeter(object):
 def test(model, criterion, testloader, device, epoch, logger, log_interval, writer):
     batch_time = AverageMeter()
     data_time = AverageMeter()
-    losses = AverageMeter()
+    # losses = AverageMeter()
     avg_wer = AverageMeter()
     # Set eval mode
     model.eval()
@@ -37,10 +37,11 @@ def test(model, criterion, testloader, device, epoch, logger, log_interval, writ
             images, tgt = data['images'].to(device), data['sentence'].to(device)
 
             # forward
-            outputs = model(images, tgt)
+            outputs = model.module.greedy_decode(images, 15)
+            logger.info("{}".format(outputs.argmax(1)))
 
             # compute the loss
-            loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt.view(-1))
+            # loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt.view(-1))
 
             # compute the WER metrics
             wer = count_wer(outputs.view(-1, outputs.shape[-1]), tgt.view(-1))
@@ -50,22 +51,22 @@ def test(model, criterion, testloader, device, epoch, logger, log_interval, writ
             end = time.time()
 
             # update average value
-            losses.update(loss)
+            # losses.update(loss)
             avg_wer.update(wer)
 
             if i % log_interval == 0:
                 output = ('[Test] Epoch: [{0}][{1}/{2}]\t'
                         'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t'
                         'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t'
-                        'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                        # 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                         'Wer {wer.val:.4f} ({wer.avg:.4f})\t'
                         .format(
                             epoch, i, len(testloader), batch_time=batch_time,
-                            loss=losses, data_time=data_time,  wer=avg_wer
+                            data_time=data_time,  wer=avg_wer
                             ))
                 print(output)
 
-                logger.info("[Test] epoch {:3d} | iteration {:5d} | Loss {:.6f}".format(epoch+1, i+1, losses.avg))
+                logger.info("[Test] epoch {:3d} | iteration {:5d} | Wer {:.6f}".format(epoch+1, i+1, avg_wer.avg))
 
     return avg_wer.avg
         

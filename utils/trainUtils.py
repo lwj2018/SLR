@@ -38,10 +38,11 @@ def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_i
 
         optimizer.zero_grad()
         # forward
-        outputs = model(images, tgt)
+        outputs = model(images, tgt[:,:-1])
+        logger.info("{}".format(outputs.view(-1, outputs.shape[-1]).argmax(1)))
 
         # compute the loss
-        loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt.view(-1))
+        loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt.view(-1)[1:])
 
         # compute the WER metrics
         wer = count_wer(outputs.view(-1, outputs.shape[-1]), tgt.view(-1))
