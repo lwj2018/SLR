@@ -271,54 +271,130 @@ class ResNet(nn.Module):
 
         return x
 
+    def load_my_state_dict(self, state_dict):
+        my_state_dict = self.state_dict()
+        for name, param in state_dict.items():
+            if name == 'fc.weight' or name == 'fc.bias':
+                continue
+            my_state_dict[name].copy_(param.data)
 
-def resnet10(**kwargs):
-    """Constructs a ResNet-10 model.
-    """
-    model = ResNet(BasicBlock, [1, 1, 1, 1], **kwargs)
-    return model
 
+model_urls = {
+    'resnet18': 'https://www.jianguoyun.com/c/dl-file/resnet-18-kinetics.pth?dt=q67aev&kv=YXF6QHpqdS5lZHUuY24&sd=a54cr&ud=B8Sbfz0nRv1pG8YNAbo0KiCnzvJHDsLYQsWjtT4b1j8&vr=1',
+    'resnet34': 'https://www.jianguoyun.com/c/dl-file/resnet-34-kinetics.pth?dt=q67acv&kv=YXF6QHpqdS5lZHUuY24&sd=a54cr&ud=BftTcvolMjyywptfxelwwjXJksCaU0ektvfMwCbMD1I&vr=1',
+    'resnet50': 'https://www.jianguoyun.com/c/dl-file/resnet-50-kinetics.pth?dt=q67atr&kv=YXF6QHpqdS5lZHUuY24&sd=a54cr&ud=uKpTbIK63qX3bHs2weOGqYYc2gtssQi-o7UqpoTaG6Q&vr=1',
+    'resnet101': '',
+    'resnet152': '',
+    'resnet200': '',
+}
 
-def resnet18(**kwargs):
+def resnet18(pretrained=False, progress=True, **kwargs):
     """Constructs a ResNet-18 model.
     """
-    model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
+    model = ResNet(BasicBlock, [2, 2, 2, 2], shortcut_type='A', **kwargs)
+    if pretrained:
+        checkpoint = load_state_dict_from_url(model_urls['resnet18'],
+            progress=progress)
+        state_dict = checkpoint['state_dict']
+
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            name = k[7:] # remove 'module.'
+            new_state_dict[name]=v
+        model.load_my_state_dict(new_state_dict)
+
     return model
 
 
-def resnet34(**kwargs):
+def resnet34(pretrained=False, progress=True, **kwargs):
     """Constructs a ResNet-34 model.
     """
-    model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
+    model = ResNet(BasicBlock, [3, 4, 6, 3], shortcut_type='A', **kwargs)
+    if pretrained:
+        checkpoint = load_state_dict_from_url(model_urls['resnet34'],
+            progress=progress)
+        state_dict = checkpoint['state_dict']
+
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            name = k[7:] # remove 'module.'
+            new_state_dict[name]=v
+        model.load_my_state_dict(new_state_dict)
+
     return model
 
 
-def resnet50(**kwargs):
+def resnet50(pretrained=False, progress=True, **kwargs):
     """Constructs a ResNet-50 model.
     """
-    model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
+    model = ResNet(Bottleneck, [3, 4, 6, 3], shortcut_type='B', **kwargs)
+    if pretrained:
+        checkpoint = load_state_dict_from_url(model_urls['resnet50'],
+            progress=progress)
+        state_dict = checkpoint['state_dict']
+
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            name = k[7:] # remove 'module.'
+            new_state_dict[name]=v
+        model.load_my_state_dict(new_state_dict)
+
     return model
 
 
-def resnet101(**kwargs):
+def resnet101(pretrained=False, progress=True, **kwargs):
     """Constructs a ResNet-101 model.
     """
-    model = ResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
+    model = ResNet(Bottleneck, [3, 4, 23, 3], shortcut_type='B', **kwargs)
+    if pretrained:
+        checkpoint = load_state_dict_from_url(model_urls['resnet101'],
+            progress=progress)
+        state_dict = checkpoint['state_dict']
+
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            name = k[7:] # remove 'module.'
+            new_state_dict[name]=v
+        model.load_my_state_dict(new_state_dict)
+
     return model
 
 
-def resnet152(**kwargs):
+def resnet152(pretrained=False, progress=True, **kwargs):
     """Constructs a ResNet-101 model.
     """
-    model = ResNet(Bottleneck, [3, 8, 36, 3], **kwargs)
+    model = ResNet(Bottleneck, [3, 8, 36, 3], shortcut_type='B', **kwargs)
+    if pretrained:
+        checkpoint = load_state_dict_from_url(model_urls['resnet152'],
+            progress=progress)
+        state_dict = checkpoint['state_dict']
+
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            name = k[7:] # remove 'module.'
+            new_state_dict[name]=v
+        model.load_my_state_dict(new_state_dict)
+
     return model
 
 
-def resnet200(**kwargs):
+def resnet200(pretrained=False, progress=True, **kwargs):
     """Constructs a ResNet-101 model.
     """
-    model = ResNet(Bottleneck, [3, 24, 36, 3], **kwargs)
+    model = ResNet(Bottleneck, [3, 24, 36, 3], shortcut_type='B', **kwargs)
+    if pretrained:
+        checkpoint = load_state_dict_from_url(model_urls['resnet200'],
+            progress=progress)
+        state_dict = checkpoint['state_dict']
+
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            name = k[7:] # remove 'module.'
+            new_state_dict[name]=v
+        model.load_my_state_dict(new_state_dict)
+
     return model
+
 
 
 """

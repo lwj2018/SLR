@@ -26,7 +26,7 @@ class CSL_Transformer(nn.Module):
                  max_len = 15):
         super(CSL_Transformer,self).__init__()
         # build the feature extractor
-        self.featureExtractor = Conv3D.resnet18(sample_size=sample_size, 
+        self.featureExtractor = Conv3D.resnet18(pretrained=True, sample_size=sample_size, 
                     sample_duration=clip_length, num_classes=num_classes)
         self.image_feature_dim = 500
         self.new_fc = nn.Linear(self.image_feature_dim, d_model)
