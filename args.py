@@ -20,10 +20,11 @@ class Arguments:
         self.num_classes = 500
         self.epochs = 100
         self.batch_size = 1
-        self.learning_rate = 1e-5
+        self.learning_rate = 1e-4
         self.sample_size = 128
         self.clip_length = 16
         self.drop_p = 0.0
+        self.smoothing = 0.1
 
         # options
         self.dataset = 'phoenix'

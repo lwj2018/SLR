@@ -14,6 +14,7 @@ from utils.testUtils import test
 from datasets.CSL_Phoenix import CSL_Phoenix, build_dictionary
 from args import Arguments
 from utils.ioUtils import save_checkpoint, resume_model
+from utils.critUtils import LabelSmoothing
 
 # get arguments
 args = Arguments()
@@ -32,6 +33,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 writer = None
 
 best_wer = 999.00
+start_epoch = 0
 
 # Train with Transformer
 if __name__ == '__main__':
@@ -53,19 +55,20 @@ if __name__ == '__main__':
     # Create model
     model = CSL_Transformer(vocab_size,vocab_size,sample_size=args.sample_size, clip_length=args.clip_length,
                 num_classes=args.num_classes).to(device)
-    if args.resume_model!=None:
-        resume_model(model,args.resume_model)
+    if args.resume_model is not None:
+        start_epoch, best_wer = resume_model(model,args.resume_model)
     # Run the model parallelly
     if torch.cuda.device_count() > 1:
         logger.info("Using {} GPUs".format(torch.cuda.device_count()))
         model = nn.DataParallel(model)
     # Create loss criterion & optimizer
-    criterion = nn.CrossEntropyLoss()
+    # criterion = nn.CrossEntropyLoss()
+    criterion = LabelSmoothing(vocab_size,0,smoothing=args.smoothing)
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Start training
     logger.info("Training Started".center(60, '#'))
-    for epoch in range(args.epochs):
+    for epoch in range(start_epoch, args.epochs):
         # Train the model
         train(model, criterion, optimizer, trainloader, device, epoch, logger, args.log_interval, writer)
         # Test the model
