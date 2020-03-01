@@ -38,9 +38,15 @@ def reverse_dictionary(dictionary):
         reverse_dict[v] = k
     return reverse_dict
 
-def itos(seq,reverse_dict):
-    """
-        convert index to token
-    """
-    sentence = [reverse_dict[index] for index in seq]
+def itos(idx_list, reverse_dict):
+    sentence = [reverse_dict[idx] for idx in idx_list]
+    return sentence
+
+def itos_clip(idx_list, reverse_dict):
+    sentence = []
+    for idx in idx_list:
+        word = reverse_dict[idx]
+        if word=='<eos>':
+            break
+        sentence.append(word)
     return sentence
