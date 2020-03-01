@@ -69,8 +69,10 @@ def test(model, criterion, testloader, device, epoch, logger, log_interval, writ
                     avg_wer.avg,
                     epoch * len(testloader) + i)
                 outputs = outputs.unsqueeze(1).permute(1,0,2).max(2)[1]
+                outputs = outputs.data.cpu().numpy()
                 outputs = [' '.join(itos(idx_list, reverse_dict)) for idx_list in outputs]
                 tgt = tgt.view(-1,tgt.size(-1))
+                tgt = tgt.data.cpu().numpy()
                 tgt = [' '.join(itos(idx_list, reverse_dict)) for idx_list in tgt]
                 writer.add_text('outputs', 
                                 str(outputs),
@@ -79,7 +81,6 @@ def test(model, criterion, testloader, device, epoch, logger, log_interval, writ
                                 str(tgt),
                                 epoch * len(testloader) + i)
                 logger.info("[Test] epoch {:3d} | iteration {:5d} | Wer {:.6f}".format(epoch+1, i+1, avg_wer.avg))
-                losses.reset()
                 avg_wer.reset()
 
     return avg_wer.avg
