@@ -42,5 +42,5 @@ def itos(seq,reverse_dict):
     """
         convert index to token
     """
-    sentence = [reverse_dict[word] for word in seq]
+    sentence = [reverse_dict[index] for index in seq]
     return sentence

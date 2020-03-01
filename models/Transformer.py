@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 import math
-from models import Conv3D
+from models import Conv3D, HCN
 
 
 """
@@ -22,14 +22,19 @@ class CSL_Transformer(nn.Module):
                  activation = 'relu',
                  clip_length = 16,
                  sample_size = 128,
-                 num_classes = 500,
-                 max_len = 15):
+                 num_classes = 512,
+                 max_len = 15,
+                 modal = 'skeleton'):
         super(CSL_Transformer,self).__init__()
         # build the feature extractor
-        self.featureExtractor = Conv3D.resnet18(pretrained=True, sample_size=sample_size, 
-                    sample_duration=clip_length, num_classes=num_classes)
-        self.image_feature_dim = 500
-        self.new_fc = nn.Linear(self.image_feature_dim, d_model)
+        self.modal = modal
+        if modal=='rgb':
+            self.featureExtractor = Conv3D.resnet18(pretrained=True, sample_size=sample_size, 
+                        sample_duration=clip_length, num_classes=num_classes)
+        else:
+            self.featureExtractor = HCN.hcn(num_classes,length=clip_length)
+        self.feature_dim = num_classes
+        # self.new_fc = nn.Linear(self.feature_dim, d_model)
         self.clip_length = clip_length
         self.max_len = max_len
         self.vocab_size = src_vocab_size
@@ -63,28 +68,48 @@ class CSL_Transformer(nn.Module):
         mask = mask.cuda()
         return mask
 
-    def extract_feature(self, images):
+    def extract_image_feature(self, input):
         # N x C x L x H x W, where N is set as 1
         #TODO support N > 1
-        images = images.squeeze(0)
-        size = images.size()
-        # C x 16 x S x H x W, S is the sequence length
-        images = images.view(size[0],self.clip_length,-1,size[2],size[3])
+        input = input.squeeze(0)
+        size = input.size()
+        # C x S x 16 x H x W, S is the sequence length
+        input = input.view(size[0],-1,self.clip_length,size[-2],size[-1])
         # S x C x 16 x H x W
-        images = images.permute(2,0,1,3,4)
-        feature = self.featureExtractor(images)
+        input = input.permute(1,0,2,3,4)
+        feature = self.featureExtractor(input)
         # S x D, D = d_model
-        src = self.new_fc(feature)
-        src = F.normalize(src,2)
+        # src = self.new_fc(feature)
+        src = F.normalize(feature,2)
+        src = src.unsqueeze(1)
+        src = src * math.sqrt(self.d_model)
+        src = self.dropout(self.pos_encoder(src))
+        return src
+
+    def extract_skeleton_feature(self, input):
+        # N x T x J x D, where N is set as 1
+        #TODO support N > 1
+        input = input.squeeze(0)
+        size = input.size()
+        # S x 16 x J x D, S is the sequence length
+        input = input.view(-1,self.clip_length,size[-2],size[-1])
+        # S x 16 x J x D
+        feature = self.featureExtractor(input)
+        # S x D, D = d_model
+        # src = self.new_fc(feature)
+        src = F.normalize(feature,2)
         src = src.unsqueeze(1)
         src = src * math.sqrt(self.d_model)
         src = self.dropout(self.pos_encoder(src))
         return src
 
 
-    def forward(self, images, tgt):       
-        # Convert images to src sequence
-        src = self.extract_feature(images)
+    def forward(self, input, tgt):       
+        # Convert input to src sequence
+        if self.modal=='rgb':
+            src = self.extract_image_feature(input)
+        elif self.modal=='skeleton':
+            src = self.extract_skeleton_feature(input)
         tgt = tgt.transpose(0,1)
 
         if self.tgt_subsequent_mask is None or self.tgt_subsequent_mask.size(0) != len(tgt):
@@ -106,9 +131,12 @@ class CSL_Transformer(nn.Module):
         out = self.out(out)
         return out
 
-    def greedy_decode(self, images, max_len):
-        # Convert images to src sequence
-        src = self.extract_feature(images)
+    def greedy_decode(self, input, max_len):
+        # Convert input to src sequence
+        if self.modal=='rgb':
+            src = self.extract_image_feature(input)
+        elif self.modal=='skeleton':
+            src = self.extract_skeleton_feature(input)
         model = self.transformer
         memory = model.encoder.forward(src)
         # give the begin word
@@ -129,6 +157,7 @@ class CSL_Transformer(nn.Module):
                 break
             tgt = self.embedding(ys) * math.sqrt(self.d_model)
             tgt = self.dropout(self.pos_encoder(tgt))
+        # S x E, S is sequence length
         one_hot = torch.zeros(ys.size()[0],self.vocab_size).cuda().scatter_(1,ys,1)
         return one_hot
 

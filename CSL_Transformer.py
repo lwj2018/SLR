@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 from datetime import datetime
 import logging
 import torch
@@ -11,10 +12,13 @@ import torchvision.transforms as transforms
 from models.Transformer import CSL_Transformer
 from utils.trainUtils import train
 from utils.testUtils import test
-from datasets.CSL_Phoenix import CSL_Phoenix, build_dictionary
+from datasets.CSL_Phoenix import CSL_Phoenix
+from datasets.CSL_Phoenix_Skeleton import CSL_Phoenix_Skeleton
 from args import Arguments
 from utils.ioUtils import save_checkpoint, resume_model
 from utils.critUtils import LabelSmoothing
+from utils.textUtils import build_dictionary, reverse_dictionary
+from torch.utils.tensorboard import SummaryWriter
 
 # get arguments
 args = Arguments()
@@ -30,7 +34,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]=args.device_list
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # dont use writer temporarily
-writer = None
+writer = SummaryWriter(os.path.join('runs/', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
 
 best_wer = 999.00
 start_epoch = 0
@@ -39,22 +43,29 @@ start_epoch = 0
 if __name__ == '__main__':
     # build dictionary
     dictionary = build_dictionary([args.train_annotation_file,args.dev_annotation_file])
+    reverse_dict = reverse_dictionary(dictionary)
     vocab_size = len(dictionary)
     print("The size of vocabulary is %d"%vocab_size)
     # Load data
-    transform = transforms.Compose([transforms.Resize([args.sample_size, args.sample_size]),
-                                    transforms.ToTensor(),
-                                    transforms.Normalize(mean=[0.5], std=[0.5])])
-    trainset = CSL_Phoenix(frame_root=args.train_frame_root,annotation_file=args.train_annotation_file,
-        transform=transform,dictionary=dictionary)
-    devset = CSL_Phoenix(frame_root=args.dev_frame_root,annotation_file=args.dev_annotation_file,
-        transform=transform,dictionary=dictionary)
+    if args.modal=='rgb':
+        transform = transforms.Compose([transforms.Resize([args.sample_size, args.sample_size]),
+                                        transforms.ToTensor(),
+                                        transforms.Normalize(mean=[0.5], std=[0.5])])
+        trainset = CSL_Phoenix(frame_root=args.train_frame_root,annotation_file=args.train_annotation_file,
+            transform=transform,dictionary=dictionary)
+        devset = CSL_Phoenix(frame_root=args.dev_frame_root,annotation_file=args.dev_annotation_file,
+            transform=transform,dictionary=dictionary)
+    elif args.modal=='skeleton':
+        trainset = CSL_Phoenix_Skeleton(skeleton_root=args.train_skeleton_root,annotation_file=args.train_annotation_file,
+            dictionary=dictionary)
+        devset = CSL_Phoenix_Skeleton(skeleton_root=args.dev_skeleton_root,annotation_file=args.dev_annotation_file,
+            dictionary=dictionary)
     logger.info("Dataset samples: {}".format(len(trainset)+len(devset)))
     trainloader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=1, pin_memory=True)
     testloader = DataLoader(devset, batch_size=args.batch_size, shuffle=True, num_workers=1, pin_memory=True)
     # Create model
     model = CSL_Transformer(vocab_size,vocab_size,sample_size=args.sample_size, clip_length=args.clip_length,
-                num_classes=args.num_classes).to(device)
+                num_classes=args.num_classes,modal=args.modal).to(device)
     if args.resume_model is not None:
         start_epoch, best_wer = resume_model(model,args.resume_model)
     # Run the model parallelly
@@ -69,10 +80,10 @@ if __name__ == '__main__':
     # Start training
     logger.info("Training Started".center(60, '#'))
     for epoch in range(start_epoch, args.epochs):
+        # Test the model
+        wer = test(model, criterion, testloader, device, epoch, logger, args.log_interval, writer, reverse_dict)
         # Train the model
         train(model, criterion, optimizer, trainloader, device, epoch, logger, args.log_interval, writer)
-        # Test the model
-        wer = test(model, criterion, testloader, device, epoch, logger, args.log_interval, writer)
         # Save model
         # remember best wer and save checkpoint
         is_best = wer<best_wer

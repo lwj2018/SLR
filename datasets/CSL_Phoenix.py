@@ -30,7 +30,7 @@ class CSL_Phoenix(Dataset):
     def prepare(self):
         df = pd.read_csv(self.annotation_file,sep='|')
         lang_model = spacy.load('de')
-        punctuation = ['_','NULL']
+        punctuation = ['_','NULL','ON','OFF','EMOTION','LEFTHAND','IX','PU']
 
         self.punctuation = punctuation
         self.lang_model = lang_model
@@ -96,7 +96,7 @@ class CSL_Phoenix(Dataset):
         images = self.read_images(frame_path)
         sentence = torch.LongTensor(sentence)
 
-        return {'images':images, 'sentence':sentence}
+        return {'input':images, 'tgt':sentence}
         
     def __len__(self):
         return len(self.data_list)

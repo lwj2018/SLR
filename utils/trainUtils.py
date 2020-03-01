@@ -34,18 +34,17 @@ def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_i
         data_time.update(time.time() - end)
 
         # get the inputs and labels
-        images, tgt = data['images'].to(device), data['sentence'].to(device)
+        input, tgt = data['input'].to(device), data['tgt'].to(device)
 
         optimizer.zero_grad()
         # forward
-        outputs = model(images, tgt[:,:-1])
-        logger.info("{}".format(outputs.view(-1, outputs.shape[-1]).argmax(1)))
+        outputs = model(input, tgt[:,:-1])
 
         # compute the loss
         loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt.view(-1)[1:])
 
         # compute the WER metrics
-        wer = count_wer(outputs.view(-1, outputs.shape[-1]), tgt.view(-1))
+        wer = count_wer(outputs.view(-1, outputs.shape[-1]), tgt.view(-1)[1:])
 
         # backward & optimize
         loss.backward()
@@ -56,11 +55,11 @@ def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_i
         end = time.time()
 
         # update average value
-        losses.update(loss)
+        losses.update(loss.item())
         avg_wer.update(wer)
 
-        if i % log_interval == 0:
-            output = ('Epoch: [{0}][{1}/{2}]\t'
+        if i % log_interval == log_interval-1:
+            info = ('Epoch: [{0}][{1}/{2}]\t'
                     'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t'
                     'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -69,7 +68,14 @@ def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_i
                         epoch, i, len(trainloader), batch_time=batch_time,
                         data_time=data_time, loss=losses,  wer=avg_wer,
                         lr=optimizer.param_groups[-1]['lr']))
-            print(output)
-
+            print(info)
+            writer.add_scalar('train loss',
+                    losses.avg,
+                    epoch * len(trainloader) + i)
+            writer.add_scalar('train wer',
+                    avg_wer.avg,
+                    epoch * len(trainloader) + i)
             logger.info("epoch {:3d} | iteration {:5d} | Loss {:.6f}".format(epoch+1, i+1, losses.avg))
+            losses.reset()
+            avg_wer.reset()
     

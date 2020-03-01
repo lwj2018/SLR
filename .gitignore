@@ -113,3 +113,6 @@ checkpoint
 obj
 .vscode
 log
+*.json
+runs
+scripts/01April_2010_Thursday_heute_default-0
