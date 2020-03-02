@@ -5,13 +5,25 @@ from utils.textUtils import itos,itos_clip
 
 def count_wer(output, tgt):
     """
-      output: torch Tensor of shape T x E
-      tgt: torch Tensor of shape 
+      shape of output is: T x E or T x N x E
+      shape of tgt is:    T or T x N
     """
-    output = torch.argmax(output,1)
-    output = output.detach().data.cpu().numpy()
-    tgt = tgt.detach().data.cpu().numpy()
-    return wer(tgt,output)
+    if len(output.size()==2):
+        output = torch.argmax(output,1)
+        output = output.detach().data.cpu().numpy()
+        tgt = tgt.detach().data.cpu().numpy()
+        return wer(tgt,output)
+    elif len(output.size()==3)
+        output = torch.argmax(output,2)
+        output = output.detach().data.cpu().numpy()
+        output = output.transpose(1,0)
+        tgt = tgt.detach().data.cpu().numpy()
+        tgt = tgt.transpose(1,0)
+        total_wer = 0.0
+        for o, t in zip(output,tgt):
+            total_wer += wer(tgt,output)
+        avg_wer = total_wer/output.shape[0]
+        return avg_wer
 
 def wer(r, h):
     """
