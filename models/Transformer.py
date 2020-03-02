@@ -104,32 +104,32 @@ class CSL_Transformer(nn.Module):
         return src
 
 
-    # def forward(self, input, tgt):       
-    #     # Convert input to src sequence
-    #     if self.modal=='rgb':
-    #         src = self.extract_image_feature(input)
-    #     elif self.modal=='skeleton':
-    #         src = self.extract_skeleton_feature(input)
-    #     tgt = tgt.transpose(0,1)
+    def forward(self, input, tgt):       
+        # Convert input to src sequence
+        if self.modal=='rgb':
+            src = self.extract_image_feature(input)
+        elif self.modal=='skeleton':
+            src = self.extract_skeleton_feature(input)
+        tgt = tgt.transpose(0,1)
 
-    #     if self.tgt_subsequent_mask is None or self.tgt_subsequent_mask.size(0) != len(tgt):
-    #         self.tgt_subsequent_mask = self.get_square_subsequent_mask(tgt)
-    #     # if self.src_pad_mask is None or self.src_pad_mask.size(1) != len(src):
-    #     #     self.src_pad_mask = self.get_pad_mask(src)
-    #     # if self.tgt_pad_mask is None or self.tgt_pad_mask.size(1) != len(tgt):
-    #     #     self.tgt_pad_mask = self.get_pad_mask(tgt)
-    #     # if self.memory_pad_mask is None or self.memory_pad_mask.size(1) != len(src):
-    #     #     self.memory_pad_mask = self.get_pad_mask(src)
+        if self.tgt_subsequent_mask is None or self.tgt_subsequent_mask.size(0) != len(tgt):
+            self.tgt_subsequent_mask = self.get_square_subsequent_mask(tgt)
+        # if self.src_pad_mask is None or self.src_pad_mask.size(1) != len(src):
+        #     self.src_pad_mask = self.get_pad_mask(src)
+        # if self.tgt_pad_mask is None or self.tgt_pad_mask.size(1) != len(tgt):
+        #     self.tgt_pad_mask = self.get_pad_mask(tgt)
+        # if self.memory_pad_mask is None or self.memory_pad_mask.size(1) != len(src):
+        #     self.memory_pad_mask = self.get_pad_mask(src)
 
-    #     tgt = self.embedding(tgt) * math.sqrt(self.d_model)
-    #     tgt = self.dropout(self.pos_encoder(tgt))
-    #     out = self.transformer(src, tgt, 
-    #             tgt_mask = self.tgt_subsequent_mask,
-    #             src_key_padding_mask = self.src_pad_mask,
-    #             tgt_key_padding_mask = self.tgt_pad_mask,
-    #             memory_key_padding_mask = self.memory_pad_mask)
-    #     out = self.out(out)
-    #     return out
+        tgt = self.embedding(tgt) * math.sqrt(self.d_model)
+        tgt = self.dropout(self.pos_encoder(tgt))
+        out = self.transformer(src, tgt, 
+                tgt_mask = self.tgt_subsequent_mask,
+                src_key_padding_mask = self.src_pad_mask,
+                tgt_key_padding_mask = self.tgt_pad_mask,
+                memory_key_padding_mask = self.memory_pad_mask)
+        out = self.out(out)
+        return out
 
     def greedy_decode(self, input, max_len):
         # Convert input to src sequence
@@ -157,22 +157,9 @@ class CSL_Transformer(nn.Module):
                 break
             tgt = self.embedding(ys) * math.sqrt(self.d_model)
             tgt = self.dropout(self.pos_encoder(tgt))
-        # S x E, S is sequence length
+        # T x E, T is sequence length
         one_hot = torch.zeros(ys.size()[0],self.vocab_size).cuda().scatter_(1,ys,1)
         return one_hot
-
-    def forward(self,input):
-        # Convert input to src sequence
-        if self.modal=='rgb':
-            src = self.extract_image_feature(input)
-        elif self.modal=='skeleton':
-            src = self.extract_skeleton_feature(input)
-        model = self.transformer
-        memory = model.encoder.forward(src)
-        # shape of out is: T x N x vocab_size
-        out = self.out(memory)
-        return out
-
 
 class PostionalEncoding(nn.Module):
     """docstring for PostionEncoder"""

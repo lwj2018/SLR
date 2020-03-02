@@ -5,7 +5,7 @@ from utils.textUtils import itos,itos_clip
 
 def count_bleu(output, trg, reverse_dict):
     # output shape: T * N * vocab_size
-    #           or: T * N (generate by greedy decode) 
+    #           or: T * vocab_size (generate by greedy decode) 
     # trg shape: T * N
     # corpus level or sentence level bleu ?
     if len(output.size())==3:
@@ -13,7 +13,7 @@ def count_bleu(output, trg, reverse_dict):
         output = output.data.cpu().numpy()
         candidate_corpus = [itos(idx_list, reverse_dict) for idx_list in output]
     elif len(output.size())==2:
-        output = output.permute(1,0)
+        output = output.argmax(1).unsqueeze(0)
         output = output.data.cpu().numpy()
         candidate_corpus = [itos_clip(idx_list, reverse_dict) for idx_list in output]
     trg = trg.permute(1,0)
@@ -29,7 +29,7 @@ def count_wer(output, tgt):
     if len(output.size())==2:
         output = torch.argmax(output,1)
         output = output.detach().data.cpu().numpy()
-        tgt = tgt.detach().data.cpu().numpy()
+        tgt = tgt.detach().data.cpu().numpy().reshape(-1)
         return wer(tgt,output)
     elif len(output.size())==3:
         output = torch.argmax(output,2)

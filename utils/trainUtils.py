@@ -41,21 +41,18 @@ def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_i
 
         optimizer.zero_grad()
         # forward
-        outputs = model(input)
+        outputs = model(input, tgt[:,:-1])
 
         # compute the loss
-        # loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt[:,1:-1].view(-1))
-        input_lengths = torch.ones(outputs.size(1),dtype=torch.long).fill_(outputs.size(0))
-        target_lengths = torch.ones(tgt.size(0),dtype=torch.long).fill_(tgt.size(1)-2)
-        loss = criterion(F.log_softmax(outputs,2), tgt[:,1:-1], input_lengths, target_lengths)
+        loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt[:,1:].view(-1))
 
         # backward & optimize
         loss.backward()
         optimizer.step()
 
         # compute the metrics
-        wer = count_wer(outputs, tgt[:,1:-1])
-        bleu = count_bleu(outputs, tgt[:,1:-1].permute(1,0), reverse_dict)
+        wer = count_wer(outputs, tgt[:,1:])
+        bleu = count_bleu(outputs, tgt[:,1:].permute(1,0), reverse_dict)
 
         # measure elapsed time
         batch_time.update(time.time() - end)

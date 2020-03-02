@@ -74,17 +74,16 @@ if __name__ == '__main__':
         model = nn.DataParallel(model)
     # Create loss criterion & optimizer
     # criterion = nn.CrossEntropyLoss()
-    # criterion = LabelSmoothing(vocab_size,0,smoothing=args.smoothing)
-    criterion = nn.CTCLoss(zero_infinity=True)
+    criterion = LabelSmoothing(vocab_size,0,smoothing=args.smoothing)
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Start training
     logger.info("Training Started".center(60, '#'))
     for epoch in range(start_epoch, args.epochs):
-        # Train the model
-        train(model, criterion, optimizer, trainloader, device, epoch, logger, args.log_interval, writer, reverse_dict)
         # Test the model
         wer = test(model, criterion, testloader, device, epoch, logger, args.log_interval, writer, reverse_dict)
+        # Train the model
+        train(model, criterion, optimizer, trainloader, device, epoch, logger, args.log_interval, writer, reverse_dict)
         # Save model
         # remember best wer and save checkpoint
         is_best = wer<best_wer

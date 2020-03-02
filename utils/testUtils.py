@@ -40,15 +40,14 @@ def test(model, criterion, testloader, device, epoch, logger, log_interval, writ
             input, tgt = data['input'].to(device), data['tgt'].to(device)
 
             # forward
-            # outputs = model.module.greedy_decode(input, 15)
-            outputs = model(input)
+            outputs = model.module.greedy_decode(input, 15)
 
             # compute the loss
             # loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt.view(-1))
 
             # compute the metrics
-            wer = count_wer(outputs, tgt[:,1:-1])
-            bleu = count_bleu(outputs, tgt[:,1:-1].permute(1,0), reverse_dict)
+            wer = count_wer(outputs, tgt)
+            bleu = count_bleu(outputs, tgt.permute(1,0), reverse_dict)
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -60,7 +59,8 @@ def test(model, criterion, testloader, device, epoch, logger, log_interval, writ
             avg_bleu.update(bleu)
 
             if i % log_interval == log_interval-1:
-                outputs = outputs.permute(1,0,2).max(2)[1]
+                # Warning! when N = 1, have to unsqueeze
+                outputs = outputs.unsqueeze(1).permute(1,0,2).max(2)[1]
                 outputs = outputs.data.cpu().numpy()
                 outputs = [' '.join(itos(idx_list, reverse_dict)) for idx_list in outputs]
                 tgt = tgt.view(-1,tgt.size(-1))

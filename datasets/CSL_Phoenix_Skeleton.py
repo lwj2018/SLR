@@ -69,6 +69,7 @@ class CSL_Phoenix_Skeleton(Dataset):
         # 处理误识别出两个骨架的情况
         if len(mat.shape)>2:
             mat = mat[0]
+        # 第3维是置信度，不需要
         mat = mat[:,:2]
         mat = torch.Tensor(mat)
         return mat

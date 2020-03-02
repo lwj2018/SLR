@@ -25,11 +25,11 @@ def build_dictionary(files):
     # 按照词的出现频率建立词典，词频越高索引越靠前
     freq_list = sorted(freq_list.items(),key=lambda item:item[1],reverse=True)
     dictionary = {}
-    dictionary['<blank>'] = 0
-    dictionary['<bos>'] = 1
-    dictionary['<eos>'] = 2
+    # dictionary['<blank>'] = 0
+    dictionary['<bos>'] = 0
+    dictionary['<eos>'] = 1
     for i,item in enumerate(freq_list):
-        dictionary[item[0]] = i+3
+        dictionary[item[0]] = i+2
     print("Build dictionary successfully!")
     return dictionary
 
