@@ -59,8 +59,10 @@ class hcn(nn.Module):
             nn.MaxPool2d(2)
         )
 
+        # scale related to total number of maxpool layer
+        scale = 16
         self.fc7 = nn.Sequential(
-            nn.Linear(256*(length//16)*(32//16),256),
+            nn.Linear(256*(length//scale)*(32//scale),256),
             nn.ReLU(),
             nn.Dropout2d(p=0.5)
         )

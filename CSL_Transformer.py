@@ -57,9 +57,9 @@ if __name__ == '__main__':
             transform=transform,dictionary=dictionary)
     elif args.modal=='skeleton':
         trainset = CSL_Phoenix_Skeleton(skeleton_root=args.train_skeleton_root,annotation_file=args.train_annotation_file,
-            dictionary=dictionary)
+            dictionary=dictionary,clip_length=args.clip_length,stride=args.stride)
         devset = CSL_Phoenix_Skeleton(skeleton_root=args.dev_skeleton_root,annotation_file=args.dev_annotation_file,
-            dictionary=dictionary)
+            dictionary=dictionary,clip_length=args.clip_length,stride=args.stride)
     logger.info("Dataset samples: {}".format(len(trainset)+len(devset)))
     trainloader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=1, pin_memory=True)
     testloader = DataLoader(devset, batch_size=args.batch_size, shuffle=True, num_workers=1, pin_memory=True)
@@ -74,16 +74,17 @@ if __name__ == '__main__':
         model = nn.DataParallel(model)
     # Create loss criterion & optimizer
     # criterion = nn.CrossEntropyLoss()
-    criterion = LabelSmoothing(vocab_size,0,smoothing=args.smoothing)
+    # criterion = LabelSmoothing(vocab_size,0,smoothing=args.smoothing)
+    criterion = nn.CTCLoss(zero_infinity=True)
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Start training
     logger.info("Training Started".center(60, '#'))
     for epoch in range(start_epoch, args.epochs):
+        # Train the model
+        train(model, criterion, optimizer, trainloader, device, epoch, logger, args.log_interval, writer, reverse_dict)
         # Test the model
         wer = test(model, criterion, testloader, device, epoch, logger, args.log_interval, writer, reverse_dict)
-        # Train the model
-        train(model, criterion, optimizer, trainloader, device, epoch, logger, args.log_interval, writer)
         # Save model
         # remember best wer and save checkpoint
         is_best = wer<best_wer

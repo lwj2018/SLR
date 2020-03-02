@@ -1,6 +1,7 @@
 import torch
+import torch.nn.functional as F
 import time
-from utils.metricUtils import count_wer
+from utils.metricUtils import count_wer, count_bleu
 
 
 class AverageMeter(object):
@@ -20,11 +21,12 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
-def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_interval, writer):
+def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_interval, writer, reverse_dict):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
     avg_wer = AverageMeter()
+    avg_bleu = AverageMeter()
     # Set trainning mode
     model.train()
 
@@ -34,21 +36,26 @@ def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_i
         data_time.update(time.time() - end)
 
         # get the inputs and labels
+        # shape of tgt is N x T
         input, tgt = data['input'].to(device), data['tgt'].to(device)
 
         optimizer.zero_grad()
         # forward
-        outputs = model(input, tgt[:,:-1])
+        outputs = model(input)
 
         # compute the loss
-        loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt.view(-1)[1:])
-
-        # compute the WER metrics
-        wer = count_wer(outputs.view(-1, outputs.shape[-1]), tgt.view(-1)[1:])
+        # loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt[:,1:-1].view(-1))
+        input_lengths = torch.ones(outputs.size(1),dtype=torch.long).fill_(outputs.size(0))
+        target_lengths = torch.ones(tgt.size(0),dtype=torch.long).fill_(tgt.size(1)-2)
+        loss = criterion(F.log_softmax(outputs,2), tgt[:,1:-1], input_lengths, target_lengths)
 
         # backward & optimize
         loss.backward()
         optimizer.step()
+
+        # compute the metrics
+        wer = count_wer(outputs, tgt[:,1:-1])
+        bleu = count_bleu(outputs, tgt[:,1:-1].permute(1,0), reverse_dict)
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -57,6 +64,7 @@ def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_i
         # update average value
         losses.update(loss.item())
         avg_wer.update(wer)
+        avg_bleu.update(bleu)
 
         if i % log_interval == log_interval-1:
             info = ('Epoch: [{0}][{1}/{2}]\t'
@@ -75,7 +83,12 @@ def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_i
             writer.add_scalar('train wer',
                     avg_wer.avg,
                     epoch * len(trainloader) + i)
+            writer.add_scalar('train bleu',
+                    avg_bleu.avg,
+                    epoch * len(trainloader) + i)
             logger.info("epoch {:3d} | iteration {:5d} | Loss {:.6f}".format(epoch+1, i+1, losses.avg))
+            # Reset average meters 
             losses.reset()
             avg_wer.reset()
+            avg_bleu.reset()
     

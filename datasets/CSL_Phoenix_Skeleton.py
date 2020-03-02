@@ -18,13 +18,17 @@ class Record:
 Implementation of CSL Phoenix Dataset
 """
 class CSL_Phoenix_Skeleton(Dataset):
-    def __init__(self,skeleton_root='',annotation_file='',transform=None,dictionary=None):
+    def __init__(self,skeleton_root='',annotation_file='',transform=None,dictionary=None,
+                clip_length=16,
+                stride=4):
         super(CSL_Phoenix_Skeleton,self).__init__()
         self.skeleton_root = skeleton_root
         self.annotation_file = annotation_file
         self.transform = transform
-        self.clip_length = 16
+        self.clip_length = clip_length
+        self.stride = stride
         self.dictionary = dictionary
+        self.stride = stride
         self.prepare()
         self.get_data_list()
 
@@ -69,7 +73,7 @@ class CSL_Phoenix_Skeleton(Dataset):
         mat = torch.Tensor(mat)
         return mat
 
-    def read_skeleton(self, skeleton_path):
+    def read_skeleton(self, skeleton_path, N):
         skeleton_path = os.path.join(self.skeleton_root,skeleton_path)
 
         skeleton_list = os.listdir(skeleton_path)
@@ -78,29 +82,36 @@ class CSL_Phoenix_Skeleton(Dataset):
         #     "Too few skeletons in your data folder: " + str(skeleton_path)
         skeletons = []
 
-        remainder_num = len(skeleton_list)%self.clip_length
-        # clip
-        if remainder_num >= self.clip_length/2 or len(skeleton_list)<self.clip_length:
-            l = len(skeleton_list)
-        elif remainder_num < self.clip_length/2:
-            l = len(skeleton_list)//self.clip_length * self.clip_length
+        # Tatol number of clips must be larger than N
+        # so length of skeletons must be larger the (N-1)* stride + clip_length
+        l = len(skeleton_list)
+        remainder_num = (l-self.clip_length)%self.stride
+        r = self.stride - remainder_num if remainder_num>0 else 0
+        clips_num = (l+r-self.clip_length)//self.stride
+        if clips_num < N: r = r + (N-clips_num)*self.stride
+        # Read skeleton data
         for i in range(l):
             skeleton = self.read_json(os.path.join(skeleton_path, skeleton_list[i]))
             skeletons.append(skeleton)
-        # padding
-        if remainder_num >= self.clip_length/2 or len(skeleton_list)<self.clip_length:
-            for i in range(self.clip_length-remainder_num):
-                skeletons.append(skeletons[-1])
-
-        # after stack, shape is T x J x D, where T is divisible by clip length
+        # Padding
+        for i in range(r):
+            skeletons.append(skeletons[-1])
+        # After stack, shape is T x J x D, where T is divisible by clip length
         skeletons = torch.stack(skeletons, dim=0)
-        return skeletons
+        # Resample the skeleton sequence with sliding window
+        samples = []
+        for i in range(0,l+r-self.clip_length+1,self.stride):
+            sample = skeletons[i:i+self.clip_length]
+            samples.append(sample)
+        data = torch.stack(samples, dim=0)
+        return data
 
     def __getitem__(self, idx):
         record = self.data_list[idx]
         skeleton_path = record.skeleton_path
         sentence = record.sentence
-        skeletons = self.read_skeleton(skeleton_path)
+        N = len(sentence)
+        skeletons = self.read_skeleton(skeleton_path,N)
         sentence = torch.LongTensor(sentence)
 
         return {'input':skeletons, 'tgt':sentence}

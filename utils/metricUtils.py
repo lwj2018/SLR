@@ -3,25 +3,42 @@ import numpy
 from torchtext.data.metrics import bleu_score
 from utils.textUtils import itos,itos_clip
 
+def count_bleu(output, trg, reverse_dict):
+    # output shape: T * N * vocab_size
+    #           or: T * N (generate by greedy decode) 
+    # trg shape: T * N
+    # corpus level or sentence level bleu ?
+    if len(output.size())==3:
+        output = output.permute(1,0,2).max(2)[1]
+        output = output.data.cpu().numpy()
+        candidate_corpus = [itos(idx_list, reverse_dict) for idx_list in output]
+    elif len(output.size())==2:
+        output = output.permute(1,0)
+        output = output.data.cpu().numpy()
+        candidate_corpus = [itos_clip(idx_list, reverse_dict) for idx_list in output]
+    trg = trg.permute(1,0)
+    trg = trg.data.cpu().numpy()
+    references_corpus = [[itos(idx_list, reverse_dict)] for idx_list in trg]
+    return bleu_score(candidate_corpus, references_corpus)
+
 def count_wer(output, tgt):
     """
       shape of output is: T x E or T x N x E
-      shape of tgt is:    T or T x N
+      shape of tgt is:    T or N x T
     """
-    if len(output.size()==2):
+    if len(output.size())==2:
         output = torch.argmax(output,1)
         output = output.detach().data.cpu().numpy()
         tgt = tgt.detach().data.cpu().numpy()
         return wer(tgt,output)
-    elif len(output.size()==3)
+    elif len(output.size())==3:
         output = torch.argmax(output,2)
         output = output.detach().data.cpu().numpy()
         output = output.transpose(1,0)
         tgt = tgt.detach().data.cpu().numpy()
-        tgt = tgt.transpose(1,0)
         total_wer = 0.0
         for o, t in zip(output,tgt):
-            total_wer += wer(tgt,output)
+            total_wer += wer(t,o)
         avg_wer = total_wer/output.shape[0]
         return avg_wer
 
@@ -74,17 +91,4 @@ def wer(r, h):
 
     return d[len(r)][len(h)]/len(r)
 
-def count_bleu(output, trg, revese_dict):
-    # output shape: seq_len * batch_size * feature
-    #           or: MAX_LEN * batch_size (generate by greedy decode) 
-    # trg shape: seq_len * batch_size
-    # corpus level or sentence level bleu ?
-    if len(output.size())==3:
-        output = output.permute(1,0,2).max(2)[1]
-        candidate_corpus = [itos(idx_list, revese_dict) for idx_list in output]
-    elif len(output.size())==2:
-        output = output.permute(1,0)
-        candidate_corpus = [itos_clip(idx_list, revese_dict) for idx_list in output]
-    trg = trg.permute(1,0)
-    references_corpus = [[(idx_list, TRG)] for idx_list in trg]
-    return bleu_score(candidate_corpus, references_corpus)
+

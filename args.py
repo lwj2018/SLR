@@ -32,9 +32,11 @@ class Arguments:
         self.batch_size = 1
         self.learning_rate = 1e-5
         self.sample_size = 128
-        self.clip_length = 16
+        self.clip_length = 2
         self.drop_p = 0.0
         self.smoothing = 0.1
+        self.clip_length = 16
+        self.stride = 8
 
         # options
         self.store_name = '_'.join(['transformer',self.modal,self.dataset])
