@@ -24,6 +24,6 @@ class LabelSmoothing(nn.Module):
         if mask.dim() > 0:
             true_dist.index_fill_(0, mask.squeeze(), 0.0)
         self.true_dist = true_dist
-        x = F.softmax(x)
+        x = F.softmax(x,1)
         x = x.log()
         return self.criterion(x, true_dist)

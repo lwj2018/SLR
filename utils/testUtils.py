@@ -40,7 +40,8 @@ def test(model, criterion, testloader, device, epoch, logger, log_interval, writ
             input, tgt = data['input'].to(device), data['tgt'].to(device)
 
             # forward
-            outputs = model.module.greedy_decode(input, 15)
+            # outputs = model.module.greedy_decode(input, 15)
+            outputs = model(input, torch.zeros(tgt[:,:-1].size(),dtype=torch.long))
 
             # compute the loss
             # loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt.view(-1))
@@ -60,7 +61,9 @@ def test(model, criterion, testloader, device, epoch, logger, log_interval, writ
 
             if i % log_interval == log_interval-1:
                 # Warning! when N = 1, have to unsqueeze
-                outputs = outputs.unsqueeze(1).permute(1,0,2).max(2)[1]
+                # Qualitative evaluation of translation result
+                # outputs = outputs.unsqueeze(1).permute(1,0,2).max(2)[1]
+                outputs = outputs.permute(1,0,2).max(2)[1]
                 outputs = outputs.data.cpu().numpy()
                 outputs = [' '.join(itos(idx_list, reverse_dict)) for idx_list in outputs]
                 tgt = tgt.view(-1,tgt.size(-1))

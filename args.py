@@ -22,15 +22,15 @@ class Arguments:
         self.log_path = "log/transformer_{:%Y-%m-%d_%H-%M-%S}.log".format(datetime.now())
         self.eval_log_path = "log/eval_transformer_{:%Y-%m-%d_%H-%M-%S}.log".format(datetime.now())
         self.sum_path = "runs/slr_transformer_{:%Y-%m-%d_%H-%M-%S}".format(datetime.now())
-        # self.resume_model = None
-        self.resume_model = "/home/liweijie/projects/SLR/checkpoint/202003011740_transformer_skeleton_ckpt.pth.tar"
+        self.resume_model = None
+        # self.resume_model = "/home/liweijie/projects/SLR/checkpoint/202003022212_transformer_skeleton_ckpt.pth.tar"
         self.eval_checkpoint = "./checkpoint/slr_transformer_epoch001.pth"
 
         # Hyperparams
         self.num_classes = 512
-        self.epochs = 100
+        self.epochs = 1000
         self.batch_size = 1
-        self.learning_rate = 1e-5
+        self.learning_rate = 1e-6
         self.sample_size = 128
         self.clip_length = 2
         self.drop_p = 0.0

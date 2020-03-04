@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import time
 from utils.metricUtils import count_wer, count_bleu
-
+from utils.textUtils import itos
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -41,7 +41,7 @@ def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_i
 
         optimizer.zero_grad()
         # forward
-        outputs = model(input, tgt[:,:-1])
+        outputs = model(input, torch.zeros(tgt[:,:-1].size(),dtype=torch.long))
 
         # compute the loss
         loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt[:,1:].view(-1))
@@ -88,4 +88,18 @@ def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_i
             losses.reset()
             avg_wer.reset()
             avg_bleu.reset()
-    
+
+            # # Qualitative evaluation of translation result
+            # outputs = outputs.permute(1,0,2).max(2)[1]
+            # outputs = outputs.data.cpu().numpy()
+            # outputs = [' '.join(itos(idx_list, reverse_dict)) for idx_list in outputs]
+            # tgt = tgt.view(-1,tgt.size(-1))
+            # tgt = tgt.data.cpu().numpy()
+            # tgt = [' '.join(itos(idx_list, reverse_dict)) for idx_list in tgt]
+            # writer.add_text('train_outputs', 
+            #                 str(outputs),
+            #                 epoch * len(trainloader) + i)
+            # writer.add_text('train_tgt',
+            #                 str(tgt),
+            #                 epoch * len(trainloader) + i)
+

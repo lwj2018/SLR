@@ -62,7 +62,7 @@ if __name__ == '__main__':
             dictionary=dictionary,clip_length=args.clip_length,stride=args.stride)
     logger.info("Dataset samples: {}".format(len(trainset)+len(devset)))
     trainloader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=1, pin_memory=True)
-    testloader = DataLoader(devset, batch_size=args.batch_size, shuffle=True, num_workers=1, pin_memory=True)
+    testloader = DataLoader(devset, batch_size=args.batch_size, shuffle=False, num_workers=1, pin_memory=True)
     # Create model
     model = CSL_Transformer(vocab_size,vocab_size,sample_size=args.sample_size, clip_length=args.clip_length,
                 num_classes=args.num_classes,modal=args.modal).to(device)
@@ -80,10 +80,10 @@ if __name__ == '__main__':
     # Start training
     logger.info("Training Started".center(60, '#'))
     for epoch in range(start_epoch, args.epochs):
-        # Test the model
-        wer = test(model, criterion, testloader, device, epoch, logger, args.log_interval, writer, reverse_dict)
         # Train the model
         train(model, criterion, optimizer, trainloader, device, epoch, logger, args.log_interval, writer, reverse_dict)
+        # Test the model
+        wer = test(model, criterion, testloader, device, epoch, logger, args.log_interval, writer, reverse_dict)
         # Save model
         # remember best wer and save checkpoint
         is_best = wer<best_wer

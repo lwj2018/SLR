@@ -64,6 +64,7 @@ class CSL_Transformer(nn.Module):
         seq_len = tgt.size(0)
         # see torch.triu return upper triangular part of the matrix except diagonal element
         mask = torch.triu(torch.ones(seq_len, seq_len), diagonal = 1)
+        # mask = torch.ones(seq_len, seq_len)
         mask = mask.float().masked_fill(mask == 0, float(0.0)).masked_fill(mask == 1, float('-inf'))
         mask = mask.cuda()
         return mask
