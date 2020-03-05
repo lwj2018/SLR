@@ -14,8 +14,8 @@ def resume_model(model, checkpoint):
     model.load_state_dict(state_dict)
 
     epoch = params_dict['epoch']
-    best_wer = params_dict['best_wer']
+    best_wer = params_dict['best']
     print("Load model from {}: \n"
     "Epoch: {}\n"
-    "Best_wer: {:.3f}%".format(checkpoint,epoch,best_wer*100))
-    return params_dict['epoch'], params_dict['best_wer']
+    "Best: {:.3f}%".format(checkpoint,epoch,best_wer*100))
+    return params_dict['epoch'], params_dict['best']

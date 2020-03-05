@@ -33,7 +33,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]=args.device_list
 # Device setting
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# dont use writer temporarily
+# Use writer to record
 writer = SummaryWriter(os.path.join('runs/', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
 
 best_wer = 999.00

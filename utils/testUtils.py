@@ -96,3 +96,58 @@ def test(model, criterion, testloader, device, epoch, logger, log_interval, writ
 
     return avg_wer.avg
         
+
+def test_isolated(model, criterion, testloader, device, epoch, logger, log_interval, writer):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    losses = AverageMeter()
+    top1 = AverageMeter()
+    top5 = AverageMeter()
+    # Set eval mode
+    model.eval()
+
+    end = time.time()
+    with torch.no_grad():
+        for i, data in enumerate(testloader):
+            # measure data loading time
+            data_time.update(time.time() - end)
+
+            # get the inputs and labels
+            # shape of tgt is N x T
+            input, tgt = data['input'].to(device), data['tgt'].to(device)
+
+            # forward
+            # outputs = model.module.greedy_decode(input, 15)
+            outputs = model(input, torch.zeros(tgt[:,:-1].size(),dtype=torch.long))
+
+            # compute the loss
+            loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt.view(-1))
+
+            # compute the metrics
+            prec1, prec5 = accuracy(output.data, target, topk=(1,5))
+
+            # measure elapsed time
+            batch_time.update(time.time() - end)
+            end = time.time()
+
+            # update average value
+            losses.update(loss.item())
+            top1.update(top1.item())
+            top5.update(top5.item())
+
+        info = ('[Test] Epoch: [{0}] [len: {1}]\t'
+                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                'Batch Prec@1 {top1.avg:.4f}\t'
+                'Batch Prec@5 {top5.avg:.4f}\t'
+                .format(
+                    epoch, len(testloader), batch_time=batch_time, loss=losses,
+                    data_time=data_time,  top1=top1, top5=top5
+                    ))
+        print(info)
+        writer.add_scalar('val acc',
+            top1.avg,
+            epoch)
+
+        logger.info("[Test] epoch {:3d} | iteration {:5d} | top1 {:.6f}".format(epoch+1, i+1, top1.avg))
+
+    return top1.avg
