@@ -1,6 +1,6 @@
 import torch
 import time
-from utils.metricUtils import count_wer, count_bleu
+from utils.metricUtils import *
 from utils.textUtils import itos
 
 class AverageMeter(object):
@@ -20,7 +20,7 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
-def test(model, criterion, testloader, device, epoch, logger, log_interval, writer, reverse_dict):
+def test(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     # losses = AverageMeter()
@@ -92,12 +92,11 @@ def test(model, criterion, testloader, device, epoch, logger, log_interval, writ
             avg_bleu.avg,
             epoch * len(testloader) + i)
 
-        logger.info("[Test] epoch {:3d} | iteration {:5d} | Wer {:.6f}".format(epoch+1, i+1, avg_wer.avg))
 
     return avg_wer.avg
         
 
-def test_isolated(model, criterion, testloader, device, epoch, logger, log_interval, writer):
+def test_isolated(model, criterion, testloader, device, epoch, log_interval, writer):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -113,18 +112,18 @@ def test_isolated(model, criterion, testloader, device, epoch, logger, log_inter
             data_time.update(time.time() - end)
 
             # get the inputs and labels
-            # shape of tgt is N x T
-            input, tgt = data['input'].to(device), data['tgt'].to(device)
+            mat, target = data
+            mat = mat.to(device)
+            target = target.to(device)
 
             # forward
-            # outputs = model.module.greedy_decode(input, 15)
-            outputs = model(input, torch.zeros(tgt[:,:-1].size(),dtype=torch.long))
+            outputs = model(mat)
 
             # compute the loss
-            loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt.view(-1))
+            loss = criterion(outputs, target)
 
             # compute the metrics
-            prec1, prec5 = accuracy(output.data, target, topk=(1,5))
+            prec1, prec5 = accuracy(outputs.data, target, topk=(1,5))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -132,8 +131,8 @@ def test_isolated(model, criterion, testloader, device, epoch, logger, log_inter
 
             # update average value
             losses.update(loss.item())
-            top1.update(top1.item())
-            top5.update(top5.item())
+            top1.update(prec1.item())
+            top5.update(prec5.item())
 
         info = ('[Test] Epoch: [{0}] [len: {1}]\t'
                 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -147,7 +146,5 @@ def test_isolated(model, criterion, testloader, device, epoch, logger, log_inter
         writer.add_scalar('val acc',
             top1.avg,
             epoch)
-
-        logger.info("[Test] epoch {:3d} | iteration {:5d} | top1 {:.6f}".format(epoch+1, i+1, top1.avg))
 
     return top1.avg

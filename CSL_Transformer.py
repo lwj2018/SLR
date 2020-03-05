@@ -23,11 +23,6 @@ from torch.utils.tensorboard import SummaryWriter
 # get arguments
 args = Arguments()
 
-# Log to file
-logging.basicConfig(level=logging.INFO, format='%(message)s', handlers=[logging.FileHandler(args.log_path)])
-logger = logging.getLogger('SLR')
-logger.info('Logging to file...')
-
 # Use specific gpus
 os.environ["CUDA_VISIBLE_DEVICES"]=args.device_list
 # Device setting
@@ -60,7 +55,7 @@ if __name__ == '__main__':
             dictionary=dictionary,clip_length=args.clip_length,stride=args.stride)
         devset = CSL_Phoenix_Skeleton(skeleton_root=args.dev_skeleton_root,annotation_file=args.dev_annotation_file,
             dictionary=dictionary,clip_length=args.clip_length,stride=args.stride)
-    logger.info("Dataset samples: {}".format(len(trainset)+len(devset)))
+    print("Dataset samples: {}".format(len(trainset)+len(devset)))
     trainloader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=1, pin_memory=True)
     testloader = DataLoader(devset, batch_size=args.batch_size, shuffle=False, num_workers=1, pin_memory=True)
     # Create model
@@ -70,7 +65,7 @@ if __name__ == '__main__':
         start_epoch, best_wer = resume_model(model,args.resume_model)
     # Run the model parallelly
     if torch.cuda.device_count() > 1:
-        logger.info("Using {} GPUs".format(torch.cuda.device_count()))
+        print("Using {} GPUs".format(torch.cuda.device_count()))
         model = nn.DataParallel(model)
     # Create loss criterion & optimizer
     # criterion = nn.CrossEntropyLoss()
@@ -78,12 +73,12 @@ if __name__ == '__main__':
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Start training
-    logger.info("Training Started".center(60, '#'))
+    print("Training Started".center(60, '#'))
     for epoch in range(start_epoch, args.epochs):
         # Train the model
-        train(model, criterion, optimizer, trainloader, device, epoch, logger, args.log_interval, writer, reverse_dict)
+        train(model, criterion, optimizer, trainloader, device, epoch, args.log_interval, writer, reverse_dict)
         # Test the model
-        wer = test(model, criterion, testloader, device, epoch, logger, args.log_interval, writer, reverse_dict)
+        wer = test(model, criterion, testloader, device, epoch, args.log_interval, writer, reverse_dict)
         # Save model
         # remember best wer and save checkpoint
         is_best = wer<best_wer
@@ -93,7 +88,7 @@ if __name__ == '__main__':
             'state_dict': model.state_dict(),
             'best_wer': best_wer
         }, is_best, args.model_path, args.store_name)
-        logger.info("Epoch {} Model Saved".format(epoch+1).center(60, '#'))
+        print("Epoch {} Model Saved".format(epoch+1).center(60, '#'))
 
-    logger.info("Training Finished".center(60, '#'))
+    print("Training Finished".center(60, '#'))
 

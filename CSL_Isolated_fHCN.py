@@ -12,7 +12,7 @@ import torchvision.transforms as transforms
 from models.fHCN import fHCN
 from utils.trainUtils import train_isolated
 from utils.testUtils import test_isolated
-from datasets.CSL_Isolated import CSL_Isolated
+from datasets.CSL_Isolated_Multimodal import CSL_Isolated_Multimodal
 from args import Arguments
 from utils.ioUtils import save_checkpoint, resume_model
 from utils.critUtils import LabelSmoothing
@@ -32,6 +32,7 @@ sample_size = 224
 num_class = 500
 # Options
 store_name = 'fHCN_isolated'
+resume_model = None
 
 
 # Get arguments
@@ -54,9 +55,9 @@ if __name__ == '__main__':
     transform = transforms.Compose([transforms.Resize([sample_size, sample_size]),
                                     transforms.ToTensor(),
                                     transforms.Normalize(mean=[0.5], std=[0.5])])
-    trainset = CSL_Isolated(video_root=video_root,skeleton_root=skeleton_root,list_file=train_file,
+    trainset = CSL_Isolated_Multimodal(video_root=video_root,skeleton_root=skeleton_root,list_file=train_file,
         transform=transform)
-    devset = CSL_Isolated(video_root=video_root,skeleton_root=skeleton_root,list_file=val_file,
+    devset = CSL_Isolated_Multimodal(video_root=video_root,skeleton_root=skeleton_root,list_file=val_file,
         transform=transform)
     print("Dataset samples: {}".format(len(trainset)+len(devset)))
     trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
@@ -77,9 +78,9 @@ if __name__ == '__main__':
     print("Training Started".center(60, '#'))
     for epoch in range(start_epoch, epochs):
         # Train the model
-        train_isolated(model, criterion, optimizer, trainloader, device, epoch, logger, args.log_interval, writer, reverse_dict)
+        train_isolated(model, criterion, optimizer, trainloader, device, epoch, args.log_interval, writer)
         # Test the model
-        prec1 = test_isolated(model, criterion, testloader, device, epoch, logger, args.log_interval, writer, reverse_dict)
+        prec1 = test_isolated(model, criterion, testloader, device, epoch, args.log_interval, writer)
         # Save model
         # remember best prec1 and save checkpoint
         is_best = prec1>best_prec1

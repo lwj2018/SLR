@@ -34,7 +34,7 @@ class VideoRecord(object):
         return int(self._data[3])
 
 
-class CSL_Isolated(data.Dataset):
+class CSL_Isolated_Multimodal(data.Dataset):
     
     def __init__(self, video_root, skleton_root, list_file,
                 transform=None, length=32, image_length=16):

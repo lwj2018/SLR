@@ -4,12 +4,12 @@ import torchvision
 from torchvision import models
 from torch.nn import functional as F
 
-class hcn(nn.Module):
+class VAE(nn.Module):
     def __init__(self,num_class, in_channel=2,
                             length=32,
                             num_joint=10,
                             dropout=0.2):
-        super(hcn, self).__init__()
+        super(VAE, self).__init__()
         self.num_class = num_class
         self.in_channel = in_channel
         self.length = length

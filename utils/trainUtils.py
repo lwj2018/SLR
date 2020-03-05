@@ -21,7 +21,7 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
-def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_interval, writer, reverse_dict):
+def train(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -83,7 +83,6 @@ def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_i
             writer.add_scalar('train bleu',
                     avg_bleu.avg,
                     epoch * len(trainloader) + i)
-            logger.info("epoch {:3d} | iteration {:5d} | Loss {:.6f}".format(epoch+1, i+1, losses.avg))
             # Reset average meters 
             losses.reset()
             avg_wer.reset()
@@ -103,7 +102,7 @@ def train(model, criterion, optimizer, trainloader, device, epoch, logger, log_i
             #                 str(tgt),
             #                 epoch * len(trainloader) + i)
 
-def train_isolated(model, criterion, optimizer, trainloader, device, epoch, logger, log_interval, writer):
+def train_isolated(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -118,12 +117,13 @@ def train_isolated(model, criterion, optimizer, trainloader, device, epoch, logg
         data_time.update(time.time() - end)
 
         # get the inputs and labels
-        # shape of tgt is N x T
-        mat, image, target = data.to(device)
+        mat, target = data
+        mat = mat.to(device)
+        target = target.to(device)
 
         optimizer.zero_grad()
         # forward
-        outputs = model(mat, image)
+        outputs = model(mat)
 
         # compute the loss
         loss = criterion(outputs, target)
@@ -133,7 +133,7 @@ def train_isolated(model, criterion, optimizer, trainloader, device, epoch, logg
         optimizer.step()
 
         # compute the metrics
-        prec1, prec5 = accuracy(output.data, target, topk=(1,5))
+        prec1, prec5 = accuracy(outputs.data, target, topk=(1,5))
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -162,7 +162,6 @@ def train_isolated(model, criterion, optimizer, trainloader, device, epoch, logg
             writer.add_scalar('train acc',
                     top1.avg,
                     epoch * len(trainloader) + i)
-            logger.info("epoch {:3d} | iteration {:5d} | Loss {:.6f}".format(epoch+1, i+1, losses.avg))
             # Reset average meters 
             losses.reset()
             top1.reset()
