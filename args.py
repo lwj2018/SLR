@@ -40,5 +40,5 @@ class Arguments:
 
         # options
         self.store_name = '_'.join(['transformer',self.modal,self.dataset])
-        self.device_list = '1,3'
+        self.device_list = '1,2'
         self.log_interval = 100

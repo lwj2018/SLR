@@ -54,8 +54,8 @@ class CSL_Isolated_Openpose(data.Dataset):
         mat = self._load_data(record.skeleton_path)
         num_frames = record.num_frames if record.num_frames<mat.shape[0]\
             else mat.shape[0]
-        skeleton_indices = self.get_sample_indices(num_frames)    
-        mat = mat[skeleton_indices,:,:]
+        indices = self.get_sample_indices(num_frames)    
+        mat = mat[indices,:,:]
 
         return mat, record.label
         
@@ -79,8 +79,7 @@ class CSL_Isolated_Openpose(data.Dataset):
         jitter = (np.random.rand(self.length)*interval).astype(int)
         indices = np.sort(indices+jitter)
         indices = np.clip(indices,0,num_frames-1)
-        skeleton_indices = indices
-        return skeleton_indices
+        return indices
     
     def _load_data(self, path):
         # 对于openpose数据集要处理训练列表

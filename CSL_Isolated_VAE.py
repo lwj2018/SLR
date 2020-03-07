@@ -9,9 +9,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 import torchvision.transforms as transforms
-from models.HCN import hcn
-from utils.trainUtils import train_isolated
-from utils.testUtils import test_isolated
+from models.VAE import VAE
+from utils.trainUtils import train_vae
+from utils.testUtils import test_vae
 from datasets.CSL_Isolated_Openpose import CSL_Isolated_Openpose
 from args import Arguments
 from utils.ioUtils import *
@@ -33,8 +33,8 @@ num_class = 500
 length = 32
 dropout = 0.2
 # Options
-store_name = 'HCN_isolated'
-checkpoint = 'checkpoint/20191229_78.814iSLR_single_skeleton_class500_checkpoint.pth.tar'
+store_name = 'VAE_isolated'
+checkpoint = None
 
 # Get arguments
 args = Arguments()
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
     testloader = DataLoader(devset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True)
     # Create model
-    model = hcn(num_class,dropout=dropout).to(device)
+    model = VAE(num_class,dropout=dropout).to(device)
     if checkpoint is not None:
         start_epoch, best_prec1 = resume_skeleton_model(model,checkpoint)
     # Run the model parallelly
@@ -75,10 +75,10 @@ if __name__ == '__main__':
     # Start training
     print("Training Started".center(60, '#'))
     for epoch in range(start_epoch, epochs):
-        # Test the model
-        prec1 = test_isolated(model, criterion, testloader, device, epoch, args.log_interval, writer)
         # Train the model
-        train_isolated(model, criterion, optimizer, trainloader, device, epoch, args.log_interval, writer)
+        train_vae(model, criterion, optimizer, trainloader, device, epoch, args.log_interval, writer)
+        # Test the model
+        prec1 = test_vae(model, criterion, testloader, device, epoch, args.log_interval, writer)
         # Save model
         # remember best prec1 and save checkpoint
         is_best = prec1>best_prec1
