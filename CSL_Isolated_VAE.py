@@ -26,7 +26,7 @@ train_file = "input/train_list.txt"
 val_file = "input/val_list.txt"
 # Hyper params
 learning_rate = 1e-5
-batch_size = 4
+batch_size = 2
 epochs = 1000
 sample_size = 224
 num_class = 500
@@ -82,7 +82,7 @@ if __name__ == '__main__':
         # Save model
         # remember best prec1 and save checkpoint
         is_best = prec1>best_prec1
-        best_prec1 = min(prec1, best_prec1)
+        best_prec1 = max(prec1, best_prec1)
         save_checkpoint({
             'epoch': epoch + 1,
             'state_dict': model.state_dict(),

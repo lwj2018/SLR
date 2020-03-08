@@ -26,7 +26,7 @@ train_file = "input/train_list.txt"
 val_file = "input/val_list.txt"
 # Hyper params
 learning_rate = 1e-5
-batch_size = 4
+batch_size = 16
 epochs = 1000
 sample_size = 224
 num_class = 500
@@ -34,7 +34,8 @@ length = 32
 dropout = 0.2
 # Options
 store_name = 'HCN_isolated'
-checkpoint = 'checkpoint/20191229_78.814iSLR_single_skeleton_class500_checkpoint.pth.tar'
+checkpoint = None
+# checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200305_80.943_HCN_isolated_best.pth.tar'
 
 # Get arguments
 args = Arguments()
@@ -63,7 +64,7 @@ if __name__ == '__main__':
     # Create model
     model = hcn(num_class,dropout=dropout).to(device)
     if checkpoint is not None:
-        start_epoch, best_prec1 = resume_skeleton_model(model,checkpoint)
+        start_epoch, best_prec1 = resume_model(model,checkpoint)
     # Run the model parallelly
     if torch.cuda.device_count() > 1:
         print("Using {} GPUs".format(torch.cuda.device_count()))
@@ -75,14 +76,14 @@ if __name__ == '__main__':
     # Start training
     print("Training Started".center(60, '#'))
     for epoch in range(start_epoch, epochs):
-        # Test the model
-        prec1 = test_isolated(model, criterion, testloader, device, epoch, args.log_interval, writer)
         # Train the model
         train_isolated(model, criterion, optimizer, trainloader, device, epoch, args.log_interval, writer)
+        # Test the model
+        prec1 = test_isolated(model, criterion, testloader, device, epoch, args.log_interval, writer)
         # Save model
         # remember best prec1 and save checkpoint
         is_best = prec1>best_prec1
-        best_prec1 = min(prec1, best_prec1)
+        best_prec1 = max(prec1, best_prec1)
         save_checkpoint({
             'epoch': epoch + 1,
             'state_dict': model.state_dict(),

@@ -129,6 +129,11 @@ class HierarchyConv(nn.Module):
         face = input[:,25:95,:,:]
         left_hand = input[:,95:116,:,:]
         right_hand = input[:,116:137,:,:]
+        # left_arm = input[:,[0,1],:,:]
+        # right_arm = input[:,[2,3],:,:]
+        # face = input[:,4:74,:,:]
+        # left_hand = input[:,74:95,:,:]
+        # right_hand = input[:,95:116,:,:]
         l1 = self.convla(left_arm) 
         r1 = self.convra(right_arm) 
         l2 = self.conflh(left_hand)

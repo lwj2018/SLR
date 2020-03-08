@@ -52,6 +52,7 @@ class CSL_Isolated_Openpose(data.Dataset):
         # Get mat
         # The shape of mat is T x J x D
         mat = self._load_data(record.skeleton_path)
+        mat = self.select_skeleton_indices(mat)
         num_frames = record.num_frames if record.num_frames<mat.shape[0]\
             else mat.shape[0]
         indices = self.get_sample_indices(num_frames)    
@@ -136,4 +137,15 @@ class CSL_Isolated_Openpose(data.Dataset):
         # 第三维是置信度，不需要
         mat = mat[:,0:2]
         return mat
+
+    def select_skeleton_indices(self,input):
+        left_arm = input[:,[3,4],:]
+        right_arm = input[:,[6,7],:]
+        left_hand = input[:,95:116,:]
+        right_hand = input[:,116:137,:]
+        face = input[:,25:95,:]
+        x = np.concatenate([left_arm,right_arm,left_hand,\
+            right_hand,face],1)
+        return x
+
 

@@ -133,6 +133,8 @@ def test_isolated(model, criterion, testloader, device, epoch, log_interval, wri
             losses.update(loss.item())
             top1.update(prec1.item())
             top5.update(prec5.item())
+            if i % 50 == 0:
+                print("%d/%d %.2f"%(i,len(testloader),top1.avg))
 
         info = ('[Test] Epoch: [{0}] [len: {1}]\t'
                 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -170,7 +172,7 @@ def test_vae(model, criterion, testloader, device, epoch, log_interval, writer):
             target = target.to(device)
 
             # forward
-            outputs = model(mat)
+            outputs = model.classify(mat)
 
             # compute the loss
             loss = criterion(outputs, target)
