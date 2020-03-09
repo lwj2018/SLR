@@ -29,14 +29,14 @@ logger.info('Logging to file...')
 writer = SummaryWriter(os.path.join('runs/', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
 
 # Use specific gpus
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 # Device setting
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Hyperparams
 num_classes = 500
 epochs = 100
-batch_size = 2
+batch_size = 8
 learning_rate = 1e-5
 log_interval = 20
 sample_size = 128
@@ -74,10 +74,10 @@ if __name__ == '__main__':
     # Start training
     logger.info("Training Started".center(60, '#'))
     for epoch in range(epochs):
-        # Test the model
-        prec1 = test(model, criterion, testloader, device, epoch, logger, writer)
         # Train the model
         train(model, criterion, optimizer, trainloader, device, epoch, logger, log_interval, writer)
+        # Test the model
+        prec1 = test(model, criterion, testloader, device, epoch, logger, writer)
         # Save model
         # remember best prec1 and save checkpoint
         is_best = prec1>best_prec1
