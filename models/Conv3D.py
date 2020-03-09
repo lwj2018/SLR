@@ -286,7 +286,7 @@ class ResNet(nn.Module):
 model_urls = {
     'resnet18': 'https://www.jianguoyun.com/c/dl-file/resnet-18-kinetics.pth?dt=q6ewbs&kv=YXF6QHpqdS5lZHUuY24&sd=a54cr&ud=3PU12V7VNXcQUQKEPvfL0NLkaioYiQPM43J9E5bW-jU&vr=1',
     'resnet34': 'https://www.jianguoyun.com/c/dl-file/resnet-34-kinetics.pth?dt=q67acv&kv=YXF6QHpqdS5lZHUuY24&sd=a54cr&ud=BftTcvolMjyywptfxelwwjXJksCaU0ektvfMwCbMD1I&vr=1',
-    'resnet50': 'https://www.jianguoyun.com/c/dl-file/resnet-50-kinetics.pth?dt=q67atr&kv=YXF6QHpqdS5lZHUuY24&sd=a54cr&ud=uKpTbIK63qX3bHs2weOGqYYc2gtssQi-o7UqpoTaG6Q&vr=1',
+    'resnet50': 'https://www.jianguoyun.com/c/dl-pubfile/resnet-50-kinetics.pth?w=TXgxy0Rch4U2PLz16-TxL-XWDt3CTMYw56MK3MXkAlA&td=q6vlr3&cid=grCDAP5PTpq_Znw5ap-3tw&ip=39.174.145.134&ha=DazHtXEQy96PCBiamesC',
     'resnet101': '',
     'resnet152': '',
     'resnet200': '',

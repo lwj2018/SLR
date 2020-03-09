@@ -75,10 +75,10 @@ if __name__ == '__main__':
     # Start training
     print("Training Started".center(60, '#'))
     for epoch in range(start_epoch, epochs):
-        # Train the model
-        train_vae(model, criterion, optimizer, trainloader, device, epoch, args.log_interval, writer)
         # Test the model
         prec1 = test_vae(model, criterion, testloader, device, epoch, args.log_interval, writer)
+        # Train the model
+        train_vae(model, criterion, optimizer, trainloader, device, epoch, args.log_interval, writer)
         # Save model
         # remember best prec1 and save checkpoint
         is_best = prec1>best_prec1

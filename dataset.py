@@ -17,7 +17,7 @@ class CSL_Isolated(Dataset):
         self.frames = frames
         self.num_classes = num_classes
         self.signers = 50
-        self.repetition = 5
+        self.repetition = 1
         if self.train:
             self.videos_per_folder = int(0.8 * self.signers * self.repetition)
         else:
