@@ -23,4 +23,4 @@ class Arguments:
         self.clip_length = 16
 
         # options
-        self.device_list = '1'
+        self.device_list = '2'

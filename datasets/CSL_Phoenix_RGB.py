@@ -17,12 +17,15 @@ class Record:
 Implementation of CSL Phoenix Dataset
 """
 class CSL_Phoenix_RGB(Dataset):
-    def __init__(self,frame_root='',annotation_file='',transform=None,dictionary=None):
+    def __init__(self,frame_root='',annotation_file='',transform=None,dictionary=None,
+        clip_length=16,
+        stride=4):
         super(CSL_Phoenix_RGB,self).__init__()
         self.frame_root = frame_root
         self.annotation_file = annotation_file
         self.transform = transform
-        self.clip_length = 16
+        self.clip_length = clip_length
+        self.stride = stride
         self.dictionary = dictionary
         self.prepare()
         self.get_data_list()
@@ -56,7 +59,7 @@ class CSL_Phoenix_RGB(Dataset):
         # Temporarily setting
         # self.data_list = self.data_list[:100]
 
-    def read_images(self, frame_path):
+    def read_images(self, frame_path, N):
         # 由于phoenix神奇的数据集文件结构
         frame_path = os.path.join(self.frame_root,frame_path) + "/1/"
 
@@ -64,34 +67,42 @@ class CSL_Phoenix_RGB(Dataset):
         imagename_list.sort()
         images = []
 
-        remainder_num = len(imagename_list)%self.clip_length
-        # clip
-        if remainder_num >= self.clip_length/2 or len(imagename_list)<self.clip_length:
-            l = len(imagename_list)
-        elif remainder_num < self.clip_length/2:
-            l = len(imagename_list)//self.clip_length * self.clip_length
+        # Tatol number of clips must be larger than N
+        # so length of images must be larger the (N-1)* stride + clip_length
+        l = len(imagename_list)
+        remainder_num = (l-self.clip_length)%self.stride
+        r = self.stride - remainder_num if remainder_num>0 else 0
+        clips_num = (l+r-self.clip_length)//self.stride
+        if clips_num < N: r = r + (N-clips_num)*self.stride
+        # Read image data
         for i in range(l):
             image = Image.open(os.path.join(frame_path, imagename_list[i])).convert('RGB')
             if self.transform is not None:
                 image = self.transform(image)
             images.append(image)
-        # padding
-        if remainder_num >= self.clip_length/2 or len(imagename_list)<self.clip_length:
-            for i in range(self.clip_length-remainder_num):
-                images.append(images[-1])
-
+        # Padding
+        for i in range(r):
+            images.append(images[-1])
+        # After stack, shape is L x C x H x W, where L is divisible by clip length
         images = torch.stack(images, dim=0)
-        # switch dimension for 3d cnn
-        # shape of C x L x H x W
-        images = images.permute(1, 0, 2, 3)
-        # print(images.shape)
-        return images
+        # Resample the image sequence with sliding window
+        samples = []
+        for i in range(0,l+r-self.clip_length+1,self.stride):
+            sample = images[i:i+self.clip_length]
+            samples.append(sample)
+        data = torch.stack(samples, dim=0)
+        # After view, shape of data is S x 16 x C x H x W
+        data = data.view( (-1,self.clip_length) + data.size()[-3:] )
+        # After permute, shape of data is S x C x 16 x H x W
+        data = data.permute(0, 2, 1, 3, 4)
+        return data
 
     def __getitem__(self, idx):
         record = self.data_list[idx]
         frame_path = record.frame_path
         sentence = record.sentence
-        images = self.read_images(frame_path)
+        N = len(sentence)
+        images = self.read_images(frame_path,N)
         sentence = torch.LongTensor(sentence)
 
         return {'input':images, 'tgt':sentence}

@@ -80,19 +80,17 @@ class CSL_Transformer(nn.Module):
         return mask
 
     def extract_image_feature(self, input):
-        # N x C x L x H x W, where N is set as 1
-        #TODO support N > 1
-        input = input.squeeze(0)
-        size = input.size()
-        # C x S x 16 x H x W, S is the sequence length
-        input = input.view(size[0],-1,self.clip_length,size[-2],size[-1])
-        # S x C x 16 x H x W
-        input = input.permute(1,0,2,3,4)
+        # shape of input is: N x S x C x 16 x H x W
+        # After view, shape of input is: (NxS) x C x 16 x H x W
+        N = input.size(0)
+        input = input.view( (-1,) + input.size()[-4:] )
         feature = self.featureExtractor(input)
-        # S x D, D = d_model
+        # After feature extrace, shape of src is: (NxS) x E, E = d_model
         # src = self.new_fc(feature)
         src = F.normalize(feature,2)
-        src = src.unsqueeze(1)
+        src = src.view(N,-1,src.size(-1))
+        # After permute, shape of src is: S x N x E
+        src = src.permute(1,0,2)
         src = src * math.sqrt(self.d_model)
         src = self.dropout(self.pos_encoder(src))
         return src

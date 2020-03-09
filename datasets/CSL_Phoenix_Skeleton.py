@@ -95,7 +95,7 @@ class CSL_Phoenix_Skeleton(Dataset):
         # Padding
         for i in range(r):
             skeletons.append(skeletons[-1])
-        # After stack, shape is T x J x D, where T is divisible by clip length
+        # After stack, shape is L x J x D, where L is divisible by clip length
         skeletons = torch.stack(skeletons, dim=0)
         # Resample the skeleton sequence with sliding window
         samples = []

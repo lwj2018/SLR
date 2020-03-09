@@ -56,16 +56,14 @@ best_wer = 999.00
 start_epoch = 0
 
 def collate(batch):
-    '''
-        @return:
-            fts: [N,L,A]
-    '''
     sources = []
     targets = []
     src_len_list = []
     tgt_len_list = []
     max_src_len = 0
     max_tgt_len = 0
+    # shape of source is: s x 16 x J x D
+    # shape of target is: t
     for sample in batch:
         source = torch.Tensor(sample['input'])
         target = torch.LongTensor(sample['tgt'])
