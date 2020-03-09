@@ -79,8 +79,6 @@ class CSL_Phoenix_Skeleton(Dataset):
 
         skeleton_list = os.listdir(skeleton_path)
         skeleton_list.sort()
-        # assert len(skeleton_list) >= self.clip_length, \
-        #     "Too few skeletons in your data folder: " + str(skeleton_path)
         skeletons = []
 
         # Tatol number of clips must be larger than N

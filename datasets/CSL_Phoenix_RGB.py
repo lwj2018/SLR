@@ -62,8 +62,6 @@ class CSL_Phoenix_RGB(Dataset):
 
         imagename_list = os.listdir(frame_path)
         imagename_list.sort()
-        # assert len(imagename_list) >= self.clip_length, \
-        #     "Too few images in your data folder: " + str(frame_path)
         images = []
 
         remainder_num = len(imagename_list)%self.clip_length
