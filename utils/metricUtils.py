@@ -3,6 +3,17 @@ import numpy
 from torchtext.data.metrics import bleu_score
 from utils.textUtils import itos,itos_clip
 
+def early_stop(sequence):
+    if type(sequence[0])==int:
+        stop_token = 2
+    else: stop_token = '<eos>'
+    new_sequence = []
+    for token in sequence:
+        new_sequence.append(token)
+        if token == stop_token:
+            break
+    return new_sequence
+
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
     maxk = max(topk)
@@ -29,19 +40,20 @@ def count_bleu(output, trg, reverse_dict):
     if len(output.size())==3:
         output = output.permute(1,0,2).max(2)[1]
         output = output.data.cpu().numpy()
-        candidate_corpus = [itos(idx_list, reverse_dict) for idx_list in output]
+        # Early stop & remove padding
+        candidate_corpus = [itos_clip(idx_list[idx_list!=0], reverse_dict) for idx_list in output]
     elif len(output.size())==2:
         output = output.argmax(1).unsqueeze(0)
         output = output.data.cpu().numpy()
         candidate_corpus = [itos_clip(idx_list, reverse_dict) for idx_list in output]
     trg = trg.permute(1,0)
     trg = trg.data.cpu().numpy()
-    references_corpus = [[itos(idx_list, reverse_dict)] for idx_list in trg]
+    references_corpus = [[itos(idx_list[idx_list!=0], reverse_dict)] for idx_list in trg]
     return bleu_score(candidate_corpus, references_corpus)
 
 def count_wer(output, tgt):
     """
-      shape of output is: T x E or T x N x E
+      shape of output is: T x vocab_size or T x N x vocab_size
       shape of tgt is:    T or N x T
     """
     if len(output.size())==2:
@@ -56,6 +68,11 @@ def count_wer(output, tgt):
         tgt = tgt.detach().data.cpu().numpy()
         total_wer = 0.0
         for o, t in zip(output,tgt):
+            # early stop
+            o = numpy.array(early_stop(o))
+            # ignore padding
+            o = o[o!=0]
+            t = t[t!=0]
             total_wer += wer(t,o)
         avg_wer = total_wer/output.shape[0]
         return avg_wer

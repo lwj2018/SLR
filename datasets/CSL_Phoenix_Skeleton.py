@@ -105,6 +105,8 @@ class CSL_Phoenix_Skeleton(Dataset):
             sample = skeletons[i:i+self.clip_length]
             samples.append(sample)
         data = torch.stack(samples, dim=0)
+        # After view, shape of data is S x 16 x J x D, where S is sequence length
+        data = data.view( (-1,self.clip_length) + data.size()[-2:] )
         return data
 
     def __getitem__(self, idx):

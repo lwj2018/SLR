@@ -16,9 +16,9 @@ class Record:
 """
 Implementation of CSL Phoenix Dataset
 """
-class CSL_Phoenix(Dataset):
+class CSL_Phoenix_RGB(Dataset):
     def __init__(self,frame_root='',annotation_file='',transform=None,dictionary=None):
-        super(CSL_Phoenix,self).__init__()
+        super(CSL_Phoenix_RGB,self).__init__()
         self.frame_root = frame_root
         self.annotation_file = annotation_file
         self.transform = transform

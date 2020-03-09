@@ -37,14 +37,15 @@ def train(model, criterion, optimizer, trainloader, device, epoch, log_interval,
 
         # get the inputs and labels
         # shape of tgt is N x T
-        input, tgt = data['input'].to(device), data['tgt'].to(device)
+        input, tgt = data['src'].to(device), data['tgt'].to(device)
+        src_len_list, tgt_len_list = data['src_len_list'].to(device), data['src_len_list'].to(device)
 
         optimizer.zero_grad()
         # forward
-        outputs = model(input, torch.zeros(tgt[:,:-1].size(),dtype=torch.long))
+        outputs = model(input, tgt[:,:-1], src_len_list, tgt_len_list)
 
         # compute the loss
-        loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt[:,1:].view(-1))
+        loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt[:,1:].reshape(-1))
 
         # backward & optimize
         loss.backward()

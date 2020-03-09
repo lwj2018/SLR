@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
 from models.Conv3D import CNN3D, resnet18, resnet34, r3d_18, resnet50
+from utils.ioUtils import *
 from dataset import CSL_Isolated
 from train import train
 from test import test
@@ -74,10 +75,7 @@ if __name__ == '__main__':
     # Start training
     logger.info("Training Started".center(60, '#'))
     for epoch in range(epochs):
-        # Train the model
-        train(model, criterion, optimizer, trainloader, device, epoch, logger, log_interval, writer)
-        # Test the model
-        prec1 = test(model, criterion, testloader, device, epoch, logger, writer)
+        prec1 = 0.0
         # Save model
         # remember best prec1 and save checkpoint
         is_best = prec1>best_prec1
@@ -88,5 +86,9 @@ if __name__ == '__main__':
             'best': best_prec1
         }, is_best, model_path, store_name)
         logger.info("Epoch {} Model Saved".format(epoch+1).center(60, '#'))
+        # Train the model
+        train(model, criterion, optimizer, trainloader, device, epoch, logger, log_interval, writer)
+        # Test the model
+        prec1 = test(model, criterion, testloader, device, epoch, logger, writer)
 
     logger.info("Training Finished".center(60, '#'))

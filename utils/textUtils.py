@@ -25,11 +25,11 @@ def build_dictionary(files):
     # 按照词的出现频率建立词典，词频越高索引越靠前
     freq_list = sorted(freq_list.items(),key=lambda item:item[1],reverse=True)
     dictionary = {}
-    # dictionary['<blank>'] = 0
-    dictionary['<bos>'] = 0
-    dictionary['<eos>'] = 1
+    dictionary['<pad>'] = 0
+    dictionary['<bos>'] = 1
+    dictionary['<eos>'] = 2
     for i,item in enumerate(freq_list):
-        dictionary[item[0]] = i+2
+        dictionary[item[0]] = i+3
     print("Build dictionary successfully!")
     return dictionary
 
@@ -47,7 +47,7 @@ def itos_clip(idx_list, reverse_dict):
     sentence = []
     for idx in idx_list:
         word = reverse_dict[idx]
+        sentence.append(word)
         if word=='<eos>':
             break
-        sentence.append(word)
     return sentence

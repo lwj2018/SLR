@@ -40,9 +40,6 @@ class CSL_Transformer(nn.Module):
         self.vocab_size = src_vocab_size
 
         self.d_model = d_model
-        self.src_pad_mask = None
-        self.tgt_pad_mask = None
-        self.memory_pad_mask = None
         self.tgt_subsequent_mask = None
 
         self.embedding = nn.Embedding(src_vocab_size, d_model)
@@ -54,17 +51,30 @@ class CSL_Transformer(nn.Module):
         self.out = nn.Linear(d_model, tgt_vocab_size)
 
     def get_pad_mask(self, data):
-        # the index of '<pad>' is 1
-        mask = data.eq(1).transpose(0,1)
-        mask = mask.masked_fill(mask == True, float('-inf')).masked_fill(mask == False, float(0.0))
+        # the index of '<pad>' is 0
+        # shape of mask is: N x T
+        mask = data.eq(0).transpose(0,1)
+        # mask = mask.masked_fill(mask == True, float('-inf')).masked_fill(mask == False, float(0.0))
         return mask
 
+    def get_src_pad_mask(self, src, src_len_list):
+        # shape of src is: S x N x E
+        # shape fo src_len_list is: N
+        # shape of mask is: N x S
+        # mask = torch.zeros(src.size(1),src.size(0))
+        mask = torch.ByteTensor(src.size(1),src.size(0))
+        # mask.fill_(True)
+        for i in range(mask.size(0)):
+            for j in range(mask.size(1)):
+                if j>=src_len_list[i]:
+                    mask[i,j] = False
+        mask = mask.cuda()
+        return mask
 
     def get_square_subsequent_mask(self, tgt):
         seq_len = tgt.size(0)
         # see torch.triu return upper triangular part of the matrix except diagonal element
         mask = torch.triu(torch.ones(seq_len, seq_len), diagonal = 1)
-        # mask = torch.ones(seq_len, seq_len)
         mask = mask.float().masked_fill(mask == 0, float(0.0)).masked_fill(mask == 1, float('-inf'))
         mask = mask.cuda()
         return mask
@@ -88,79 +98,81 @@ class CSL_Transformer(nn.Module):
         return src
 
     def extract_skeleton_feature(self, input):
-        # N x T x J x D, where N is set as 1
-        #TODO support N > 1
-        input = input.squeeze(0)
-        size = input.size()
-        # S x 16 x J x D, S is the sequence length
-        input = input.view(-1,self.clip_length,size[-2],size[-1])
-        # S x 16 x J x D
+        # shape of input is: N x S x 16 x J x D, S is the sequence length
+        # After view, shape of input is: (NxS) x 16 x J x D
+        N = input.size(0)
+        input = input.view( (-1,) + input.size()[-3:] )
         feature = self.featureExtractor(input)
-        # S x D, D = d_model
+        # After feature extrace, shape of src is: (NxS) x E, E = d_model
         # src = self.new_fc(feature)
         src = F.normalize(feature,2)
-        src = src.unsqueeze(1)
+        src = src.view(N,-1,src.size(-1))
+        # After permute, shape of src is: S x N x E
+        src = src.permute(1,0,2)
         src = src * math.sqrt(self.d_model)
         src = self.dropout(self.pos_encoder(src))
         return src
 
 
-    def forward(self, input, tgt):       
+    def forward(self, input, tgt, src_len_list, tgt_len_list):    
         # Convert input to src sequence
         if self.modal=='rgb':
             src = self.extract_image_feature(input)
         elif self.modal=='skeleton':
             src = self.extract_skeleton_feature(input)
+        # After transpose, shape of tgt is: T x N
         tgt = tgt.transpose(0,1)
 
-        if self.tgt_subsequent_mask is None or self.tgt_subsequent_mask.size(0) != len(tgt):
+        # Masking
+        if self.tgt_subsequent_mask is None or self.tgt_subsequent_mask.size(0)!=len(tgt):
             self.tgt_subsequent_mask = self.get_square_subsequent_mask(tgt)
-        # if self.src_pad_mask is None or self.src_pad_mask.size(1) != len(src):
-        #     self.src_pad_mask = self.get_pad_mask(src)
-        # if self.tgt_pad_mask is None or self.tgt_pad_mask.size(1) != len(tgt):
-        #     self.tgt_pad_mask = self.get_pad_mask(tgt)
-        # if self.memory_pad_mask is None or self.memory_pad_mask.size(1) != len(src):
-        #     self.memory_pad_mask = self.get_pad_mask(src)
+        src_pad_mask = self.get_src_pad_mask(src,src_len_list)
+        tgt_pad_mask = self.get_pad_mask(tgt)
+        memory_pad_mask = self.get_src_pad_mask(src,src_len_list)
 
+        # After embedding, shape of tgt is: T x N x E
         tgt = self.embedding(tgt) * math.sqrt(self.d_model)
         tgt = self.dropout(self.pos_encoder(tgt))
         out = self.transformer(src, tgt, 
                 tgt_mask = self.tgt_subsequent_mask,
-                src_key_padding_mask = self.src_pad_mask,
-                tgt_key_padding_mask = self.tgt_pad_mask,
-                memory_key_padding_mask = self.memory_pad_mask)
+                src_key_padding_mask = src_pad_mask,
+                tgt_key_padding_mask = tgt_pad_mask,
+                memory_key_padding_mask = memory_pad_mask)
         out = self.out(out)
         return out
 
     def greedy_decode(self, input, max_len):
+        # Now support N > 1
         # Convert input to src sequence
         if self.modal=='rgb':
             src = self.extract_image_feature(input)
         elif self.modal=='skeleton':
             src = self.extract_skeleton_feature(input)
+        N = src.size(1)
         model = self.transformer
+        # shape of memory is: S x N x E
         memory = model.encoder.forward(src)
         # give the begin word
-        ys = torch.ones(1, 1, dtype=torch.long).fill_(0).cuda()
-        ye = torch.ones(1, 1, dtype=torch.long).fill_(1).cuda()
+        ys = torch.ones(1, N, dtype=torch.long).fill_(1).cuda()
+        # After embedding, shape of tgt is 1 x N x E
         tgt = self.embedding(ys) * math.sqrt(self.d_model)
         tgt = self.dropout(self.pos_encoder(tgt))
         for i in range(max_len-1):
             out = model.decoder.forward(tgt, memory, 
                             tgt_mask=self.get_square_subsequent_mask(tgt),
                             memory_mask=None)
+            # shape of prob is: currT x N x vocab_size
             prob = self.out(out)
+            # shape of next_word is: currT x N
             next_word = torch.argmax(prob, dim = 2)
-            next_word = next_word.data[-1]
-            ys = torch.cat([ys,
-                            torch.ones(1, 1, dtype=torch.long).fill_(next_word.squeeze()).cuda()], dim=0)
-            if next_word == 1:
-                break
+            next_word = next_word.data[-1,:].unsqueeze(0)
+            ys = torch.cat([ys,next_word], dim=0)
+            # After embedding, shape of tgt is (currT+1) x N x E
             tgt = self.embedding(ys) * math.sqrt(self.d_model)
             tgt = self.dropout(self.pos_encoder(tgt))
-        # T x E, T is sequence length
-        one_hot = torch.zeros(ys.size()[0],self.vocab_size).cuda().scatter_(1,ys,1)
-        return one_hot
+        # shape of ys is: max_len x N
+        # shape of prob is: max_len x N x vocab_size
+        return prob
 
 class PostionalEncoding(nn.Module):
     """docstring for PostionEncoder"""

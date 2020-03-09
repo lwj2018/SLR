@@ -37,11 +37,11 @@ def test(model, criterion, testloader, device, epoch, log_interval, writer, reve
 
             # get the inputs and labels
             # shape of tgt is N x T
-            input, tgt = data['input'].to(device), data['tgt'].to(device)
+            input, tgt = data['src'].to(device), data['tgt'].to(device)
 
             # forward
-            # outputs = model.module.greedy_decode(input, 15)
-            outputs = model(input, torch.zeros(tgt[:,:-1].size(),dtype=torch.long))
+            outputs = model.greedy_decode(input, 15)
+            # outputs = model(input, torch.zeros(tgt[:,:-1].size(),dtype=torch.long))
 
             # compute the loss
             # loss = criterion(outputs.view(-1, outputs.shape[-1]), tgt.view(-1))

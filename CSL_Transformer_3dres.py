@@ -12,13 +12,31 @@ import torchvision.transforms as transforms
 from models.Transformer import CSL_Transformer
 from utils.trainUtils import train
 from utils.testUtils import test
-from datasets.CSL_Phoenix import CSL_Phoenix
-from datasets.CSL_Phoenix_Skeleton import CSL_Phoenix_Skeleton
+from datasets.CSL_Phoenix_RGB import CSL_Phoenix_RGB
 from args import Arguments
 from utils.ioUtils import save_checkpoint, resume_model
 from utils.critUtils import LabelSmoothing
 from utils.textUtils import build_dictionary, reverse_dictionary
 from torch.utils.tensorboard import SummaryWriter
+
+# Path setting
+train_frame_root = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-multisigner/features/fullFrame-210x260px/train"
+train_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-multisigner/annotations/manual/train.corpus.csv"
+dev_frame_root = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-multisigner/features/fullFrame-210x260px/dev"
+dev_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-multisigner/annotations/manual/dev.corpus.csv"
+# Hyper params
+learning_rate = 1e-6
+batch_size = 2
+epochs = 1000
+sample_size = 128
+num_classes = 512
+clip_length = 16
+smoothing = 0.1
+stride = 8
+# Options
+store_name = 'Transformer_3dres'
+checkpoint = None
+log_interval = 100
 
 # get arguments
 args = Arguments()
@@ -37,48 +55,42 @@ start_epoch = 0
 # Train with Transformer
 if __name__ == '__main__':
     # build dictionary
-    dictionary = build_dictionary([args.train_annotation_file,args.dev_annotation_file])
+    dictionary = build_dictionary([train_annotation_file,dev_annotation_file])
     reverse_dict = reverse_dictionary(dictionary)
     vocab_size = len(dictionary)
     print("The size of vocabulary is %d"%vocab_size)
     # Load data
-    if args.modal=='rgb':
-        transform = transforms.Compose([transforms.Resize([args.sample_size, args.sample_size]),
+    transform = transforms.Compose([transforms.Resize([sample_size, sample_size]),
                                         transforms.ToTensor(),
                                         transforms.Normalize(mean=[0.5], std=[0.5])])
-        trainset = CSL_Phoenix(frame_root=args.train_frame_root,annotation_file=args.train_annotation_file,
+    trainset = CSL_Phoenix_RGB(frame_root=train_frame_root,annotation_file=train_annotation_file,
             transform=transform,dictionary=dictionary)
-        devset = CSL_Phoenix(frame_root=args.dev_frame_root,annotation_file=args.dev_annotation_file,
+    devset = CSL_Phoenix_RGB(frame_root=dev_frame_root,annotation_file=dev_annotation_file,
             transform=transform,dictionary=dictionary)
-    elif args.modal=='skeleton':
-        trainset = CSL_Phoenix_Skeleton(skeleton_root=args.train_skeleton_root,annotation_file=args.train_annotation_file,
-            dictionary=dictionary,clip_length=args.clip_length,stride=args.stride)
-        devset = CSL_Phoenix_Skeleton(skeleton_root=args.dev_skeleton_root,annotation_file=args.dev_annotation_file,
-            dictionary=dictionary,clip_length=args.clip_length,stride=args.stride)
     print("Dataset samples: {}".format(len(trainset)+len(devset)))
-    trainloader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=1, pin_memory=True)
-    testloader = DataLoader(devset, batch_size=args.batch_size, shuffle=False, num_workers=1, pin_memory=True)
+    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
+    testloader = DataLoader(devset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True)
     # Create model
-    model = CSL_Transformer(vocab_size,vocab_size,sample_size=args.sample_size, clip_length=args.clip_length,
-                num_classes=args.num_classes,modal=args.modal).to(device)
-    if args.resume_model is not None:
-        start_epoch, best_wer = resume_model(model,args.resume_model)
+    model = CSL_Transformer(vocab_size,vocab_size,sample_size=sample_size, clip_length=clip_length,
+                num_classes=num_classes,modal='rgb').to(device)
+    if checkpoint is not None:
+        start_epoch, best_wer = resume_model(model,checkpoint)
     # Run the model parallelly
     if torch.cuda.device_count() > 1:
         print("Using {} GPUs".format(torch.cuda.device_count()))
         model = nn.DataParallel(model)
     # Create loss criterion & optimizer
     # criterion = nn.CrossEntropyLoss()
-    criterion = LabelSmoothing(vocab_size,0,smoothing=args.smoothing)
-    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+    criterion = LabelSmoothing(vocab_size,0,smoothing=smoothing)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     # Start training
     print("Training Started".center(60, '#'))
-    for epoch in range(start_epoch, args.epochs):
+    for epoch in range(start_epoch, epochs):
         # Train the model
-        train(model, criterion, optimizer, trainloader, device, epoch, args.log_interval, writer, reverse_dict)
+        train(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict)
         # Test the model
-        wer = test(model, criterion, testloader, device, epoch, args.log_interval, writer, reverse_dict)
+        wer = test(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict)
         # Save model
         # remember best wer and save checkpoint
         is_best = wer<best_wer
@@ -87,7 +99,7 @@ if __name__ == '__main__':
             'epoch': epoch + 1,
             'state_dict': model.state_dict(),
             'best_wer': best_wer
-        }, is_best, args.model_path, args.store_name)
+        }, is_best, args.model_path, store_name)
         print("Epoch {} Model Saved".format(epoch+1).center(60, '#'))
 
     print("Training Finished".center(60, '#'))
