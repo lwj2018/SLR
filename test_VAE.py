@@ -34,7 +34,7 @@ length = 32
 dropout = 0.2
 # Options
 store_name = 'VAE_isolated'
-checkpoint = None
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/VAE_isolated_checkpoint.pth.tar'
 
 # Get arguments
 args = Arguments()
