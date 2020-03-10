@@ -173,6 +173,7 @@ def test_vae(model, criterion, testloader, device, epoch, log_interval, writer):
 
             # forward
             outputs = model.classify(mat)
+            # recons, input, mu, log_var = model(mat)
 
             # compute the loss
             loss = criterion(outputs, target)
