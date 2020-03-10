@@ -1,4 +1,6 @@
+import os
 import torch
+import numpy
 import time
 from utils.metricUtils import *
 from utils.textUtils import itos
@@ -159,6 +161,9 @@ def test_vae(model, criterion, testloader, device, epoch, log_interval, writer):
     top5 = AverageMeter()
     # Set eval mode
     model.eval()
+    # create output path
+    output_path = 'obj/vae_generate'
+    if not os.path.exists(output_path): os.makedirs(output_path)
 
     end = time.time()
     with torch.no_grad():
@@ -173,7 +178,15 @@ def test_vae(model, criterion, testloader, device, epoch, log_interval, writer):
 
             # forward
             outputs = model.classify(mat)
-            # recons, input, mu, log_var = model(mat)
+            recons, input, mu, log_var = model(mat)
+            # save recons & input
+            if i%100==0:
+                recons_save_name = os.path.join(output_path,'recons_%06d.npy'%i)
+                recons = recons.detach().data.cpu().numpy()
+                numpy.save(recons_save_name,recons)
+                input_save_name = os.path.join(output_path,'input_%06d.npy'%i)
+                input = input.detach().data.cpu().numpy()
+                numpy.save(input_save_name,input)
 
             # compute the loss
             loss = criterion(outputs, target)

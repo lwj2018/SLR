@@ -115,5 +115,6 @@ obj
 log
 *.json
 runs
+scripts
 scripts/01April_2010_Thursday_heute_default-0
 scripts/test.ipynb

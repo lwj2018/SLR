@@ -2,6 +2,7 @@ import pandas as pd
 import spacy
 from collections import Counter
 import time
+import jieba
 
 def build_dictionary(files):
     start = time.time()
@@ -43,6 +44,14 @@ def itos(idx_list, reverse_dict):
     sentence = [reverse_dict[idx] for idx in idx_list]
     return sentence
 
+def stoi(token_list, dictionary):
+    index_list = []
+    for token in token_list:
+        if token in dictionary.keys():
+            index = dictionary[token]
+            index_list.append(index)
+    return index_list
+
 def itos_clip(idx_list, reverse_dict):
     sentence = []
     for idx in idx_list:
@@ -51,3 +60,20 @@ def itos_clip(idx_list, reverse_dict):
         if word=='<eos>':
             break
     return sentence
+
+def convert_chinese_to_indices(sentence, dictionary):
+    words = jieba.cut(sentence.rstrip('\n'))
+    indices = stoi(words,dictionary)
+    return indices
+
+def build_isl_dictionary():
+    dict_fname = '/home/liweijie/Data/SLR_dataset/dictionary.txt'
+    f = open(dict_fname,encoding='utf-8')
+    words = f.readlines()
+    dictionary = {}
+    for word in words:
+        data = word.rstrip('\n').split()
+        index = int(data[0])
+        token = data[1]
+        dictionary[token] = index
+    return dictionary

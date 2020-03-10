@@ -35,6 +35,7 @@ dropout = 0.2
 # Options
 store_name = 'VAE_isolated'
 checkpoint = '/home/liweijie/projects/SLR/checkpoint/VAE_isolated_checkpoint.pth.tar'
+log_interval = 100
 
 # Get arguments
 args = Arguments()
@@ -63,7 +64,7 @@ if __name__ == '__main__':
     # Create model
     model = VAE(num_class,dropout=dropout).to(device)
     if checkpoint is not None:
-        start_epoch, best_prec1 = resume_skeleton_model(model,checkpoint)
+        start_epoch, best_prec1 = resume_model(model,checkpoint)
     # Run the model parallelly
     if torch.cuda.device_count() > 1:
         print("Using {} GPUs".format(torch.cuda.device_count()))
@@ -76,7 +77,7 @@ if __name__ == '__main__':
     print("Test Started".center(60, '#'))
     for epoch in range(start_epoch, start_epoch+1):
         # Test the model
-        prec1 = test_vae(model, criterion, testloader, device, epoch, args.log_interval, writer)
+        prec1 = test_vae(model, criterion, testloader, device, epoch, log_interval, writer)
 
     print("Test Finished".center(60, '#'))
 

@@ -141,11 +141,11 @@ class CSL_Isolated_Openpose(data.Dataset):
     def select_skeleton_indices(self,input):
         left_arm = input[:,[3,4],:]
         right_arm = input[:,[6,7],:]
+        face = input[:,25:95,:]
         left_hand = input[:,95:116,:]
         right_hand = input[:,116:137,:]
-        face = input[:,25:95,:]
-        x = np.concatenate([left_arm,right_arm,left_hand,\
-            right_hand,face],1)
+        x = np.concatenate([left_arm,right_arm,face,\
+            left_hand,right_hand],1)
         return x
 
 
