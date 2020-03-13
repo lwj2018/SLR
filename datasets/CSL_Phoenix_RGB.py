@@ -6,7 +6,10 @@ import torchvision.transforms as transforms
 import pandas as pd
 import spacy
 import time
-from utils.textUtils import build_dictionary, reverse_dictionary
+import matplotlib.pyplot as plt
+import sys
+sys.path.append('/home/liweijie/projects/SLR')
+from utils.textUtils import *
 
 class Record:
     def __init__(self,path,sentence):
@@ -19,7 +22,7 @@ Implementation of CSL Phoenix Dataset
 class CSL_Phoenix_RGB(Dataset):
     def __init__(self,frame_root='',annotation_file='',transform=None,dictionary=None,
         clip_length=16,
-        stride=4):
+        stride=8):
         super(CSL_Phoenix_RGB,self).__init__()
         self.frame_root = frame_root
         self.annotation_file = annotation_file
@@ -31,6 +34,7 @@ class CSL_Phoenix_RGB(Dataset):
         self.get_data_list()
 
     def prepare(self):
+        # Prepare df, lang_model et. al.
         df = pd.read_csv(self.annotation_file,sep='|')
         lang_model = spacy.load('de')
         punctuation = ['_','NULL','ON','OFF','EMOTION','LEFTHAND','IX','PU']
@@ -40,6 +44,7 @@ class CSL_Phoenix_RGB(Dataset):
         self.df = df
 
     def process_sentence(self,sentence):
+        # Tokenize & convert tokens to indices
         sentence = [tok.text for tok in self.lang_model.tokenizer(sentence) 
             if not tok.text in self.punctuation]
         sentence = ['<bos>'] + sentence + ['<eos>']
@@ -48,6 +53,7 @@ class CSL_Phoenix_RGB(Dataset):
         return indices
     
     def get_data_list(self):
+        # Prepare data list
         self.data_list = []
         for i in range(len(self.df)):
             row = self.df.loc[i]
@@ -95,6 +101,8 @@ class CSL_Phoenix_RGB(Dataset):
         data = data.view( (-1,self.clip_length) + data.size()[-3:] )
         # After permute, shape of data is S x C x 16 x H x W
         data = data.permute(0, 2, 1, 3, 4)
+        # Preview for test
+        # self.preview(data)
         return data
 
     def __getitem__(self, idx):
@@ -110,6 +118,31 @@ class CSL_Phoenix_RGB(Dataset):
     def __len__(self):
         return len(self.data_list)
 
+    def preview(self,data):
+        # After permute, shape resume to S x 16 x H x W x C
+        data = data.permute(0, 2, 3, 4, 1)
+        # Select first clip 
+        data = data[0]
+        for i,frame in enumerate(data):
+            plt.subplot(4,4,i+1)
+            plt.imshow(frame)
+        plt.show()
         
-
+# Test
+if __name__ == '__main__':
+    sample_size = 128
+    # get transform
+    transform = transforms.Compose([transforms.Resize([sample_size, sample_size]),
+                                        transforms.ToTensor(),
+                                        transforms.Normalize(mean=[0.5], std=[0.5])])
+    # Path settings
+    train_frame_root = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-multisigner/features/fullFrame-210x260px/train"
+    train_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-multisigner/annotations/manual/train.corpus.csv"
+    dev_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-multisigner/annotations/manual/dev.corpus.csv"
+    # build dictionary
+    dictionary = build_dictionary([train_annotation_file,dev_annotation_file])
+    # build dataset
+    dataset = CSL_Phoenix_RGB(frame_root=train_frame_root,annotation_file=train_annotation_file,transform=transform,
+                dictionary=dictionary)
+    dataset[1000]
 

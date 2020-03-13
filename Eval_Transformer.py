@@ -13,7 +13,7 @@ from models.Transformer import CSL_Transformer
 from utils.trainUtils import train
 from utils.testUtils import test
 from datasets.CSL_Phoenix import CSL_Phoenix
-from datasets.CSL_Phoenix_Skeleton import CSL_Phoenix_Skeleton
+from datasets.CSL_Phoenix_Openpose import CSL_Phoenix_Openpose
 from args import Arguments
 from utils.ioUtils import save_checkpoint, resume_model
 from utils.critUtils import LabelSmoothing
@@ -56,9 +56,9 @@ if __name__ == '__main__':
         devset = CSL_Phoenix(frame_root=args.dev_frame_root,annotation_file=args.dev_annotation_file,
             transform=transform,dictionary=dictionary)
     elif args.modal=='skeleton':
-        trainset = CSL_Phoenix_Skeleton(skeleton_root=args.train_skeleton_root,annotation_file=args.train_annotation_file,
+        trainset = CSL_Phoenix_Openpose(skeleton_root=args.train_skeleton_root,annotation_file=args.train_annotation_file,
             dictionary=dictionary,clip_length=args.clip_length,stride=args.stride)
-        devset = CSL_Phoenix_Skeleton(skeleton_root=args.dev_skeleton_root,annotation_file=args.dev_annotation_file,
+        devset = CSL_Phoenix_Openpose(skeleton_root=args.dev_skeleton_root,annotation_file=args.dev_annotation_file,
             dictionary=dictionary,clip_length=args.clip_length,stride=args.stride)
     logger.info("Dataset samples: {}".format(len(trainset)+len(devset)))
     trainloader = DataLoader(trainset, batch_size=args.batch_size, shuffle=False, num_workers=1, pin_memory=True)

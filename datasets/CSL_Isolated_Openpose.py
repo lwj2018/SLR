@@ -52,10 +52,8 @@ class CSL_Isolated_Openpose(data.Dataset):
         # Get mat
         # The shape of mat is T x J x D
         mat = self._load_data(record.skeleton_path)
-        mat = self.select_skeleton_indices(mat)
-        num_frames = record.num_frames if record.num_frames<mat.shape[0]\
-            else mat.shape[0]
-        indices = self.get_sample_indices(num_frames)    
+        # mat = self.select_skeleton_indices(mat)
+        indices = self.get_sample_indices(mat.shape[0])    
         mat = mat[indices,:,:]
 
         return mat, record.label
@@ -71,7 +69,7 @@ class CSL_Isolated_Openpose(data.Dataset):
         print('video number:%d'%(len(self.video_list)))
 
     def get_sample_indices(self,num_frames):
-        indices = np.linspace(1,num_frames-1,self.length).astype(int)
+        indices = np.linspace(0,num_frames-1,self.length).astype(int)
         interval = (num_frames-1)//self.length
         if interval>0:
             jitter = np.random.randint(0,interval,self.length)
@@ -136,6 +134,8 @@ class CSL_Isolated_Openpose(data.Dataset):
         mat = np.array(mat)
         # 第三维是置信度，不需要
         mat = mat[:,0:2]
+        # Normalize
+        mat = self.normalize(mat)
         return mat
 
     def select_skeleton_indices(self,input):
@@ -148,4 +148,32 @@ class CSL_Isolated_Openpose(data.Dataset):
             left_hand,right_hand],1)
         return x
 
+    def normalize(self,mat):
+        # Shape of mat is: J x D
+        max_x = np.max(mat[:,0])
+        min_x = min(mat[:,0])
+        max_y = np.max(mat[:,1])
+        min_y = min(mat[:,1])
+        center_x = (max_x+min_x)/2
+        center_y = (max_y+min_y)/2
+        mat = (mat-[center_x,center_y])/[(max_x-min_x)/2,(max_y-min_y)/2]
+        # TEST
+        # print("max_x: %.2f,min_x: %.2f,max_y: %.2f,min_y: %.2f"%(max_x,min_x,max_y,min_y))
+        return mat
 
+def min(array):
+    threshold = 0.1
+    min = 999999
+    for x in array:
+        if x>threshold and x<min:
+            min = x
+    return min
+
+# Test
+if __name__ == '__main__':
+    # Path settings
+    skeleton_root = "/home/liweijie/skeletons_dataset"
+    train_file = "../input/train_list.txt"
+    val_file = "../input/val_list.txt"
+    dataset = CSL_Isolated_Openpose(skeleton_root=skeleton_root,list_file=train_file)
+    print(dataset[1000])

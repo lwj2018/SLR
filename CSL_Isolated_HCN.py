@@ -20,7 +20,6 @@ from utils.textUtils import build_dictionary, reverse_dictionary
 from torch.utils.tensorboard import SummaryWriter
 
 # Path settings
-video_root = "/home/liweijie/SLR_dataset/S500_color_video"
 skeleton_root = "/home/liweijie/skeletons_dataset"
 train_file = "input/train_list.txt"
 val_file = "input/val_list.txt"
@@ -34,14 +33,16 @@ length = 32
 dropout = 0.2
 # Options
 store_name = 'HCN_isolated'
-checkpoint = None
-# checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200305_80.943_HCN_isolated_best.pth.tar'
+# checkpoint = None
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200305_80.943_HCN_isolated_best.pth.tar'
+device_list = '0'
+log_interval = 100
 
 # Get arguments
 args = Arguments()
 
 # Use specific gpus
-os.environ["CUDA_VISIBLE_DEVICES"]=args.device_list
+os.environ["CUDA_VISIBLE_DEVICES"]=device_list
 # Device setting
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -64,7 +65,7 @@ if __name__ == '__main__':
     # Create model
     model = hcn(num_class,dropout=dropout).to(device)
     if checkpoint is not None:
-        start_epoch, best_prec1 = resume_model(model,checkpoint)
+        start_epoch, best_prec1 = resume_multigpu_model(model,checkpoint)
     # Run the model parallelly
     if torch.cuda.device_count() > 1:
         print("Using {} GPUs".format(torch.cuda.device_count()))
@@ -77,9 +78,9 @@ if __name__ == '__main__':
     print("Training Started".center(60, '#'))
     for epoch in range(start_epoch, epochs):
         # Train the model
-        train_isolated(model, criterion, optimizer, trainloader, device, epoch, args.log_interval, writer)
+        train_isolated(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer)
         # Test the model
-        prec1 = test_isolated(model, criterion, testloader, device, epoch, args.log_interval, writer)
+        prec1 = test_isolated(model, criterion, testloader, device, epoch, log_interval, writer)
         # Save model
         # remember best prec1 and save checkpoint
         is_best = prec1>best_prec1

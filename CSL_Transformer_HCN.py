@@ -12,7 +12,7 @@ import torchvision.transforms as transforms
 from models.Transformer import CSL_Transformer
 from utils.trainUtils import train
 from utils.testUtils import test
-from datasets.CSL_Phoenix_Skeleton import CSL_Phoenix_Skeleton
+from datasets.CSL_Phoenix_Openpose import CSL_Phoenix_Openpose
 from args import Arguments
 from utils.ioUtils import save_checkpoint, resume_model
 from utils.critUtils import LabelSmoothing
@@ -111,9 +111,9 @@ if __name__ == '__main__':
     vocab_size = len(dictionary)
     print("The size of vocabulary is %d"%vocab_size)
     # Load data
-    trainset = CSL_Phoenix_Skeleton(skeleton_root=train_skeleton_root,annotation_file=train_annotation_file,
+    trainset = CSL_Phoenix_Openpose(skeleton_root=train_skeleton_root,annotation_file=train_annotation_file,
             dictionary=dictionary,clip_length=clip_length,stride=stride)
-    devset = CSL_Phoenix_Skeleton(skeleton_root=dev_skeleton_root,annotation_file=dev_annotation_file,
+    devset = CSL_Phoenix_Openpose(skeleton_root=dev_skeleton_root,annotation_file=dev_annotation_file,
             dictionary=dictionary,clip_length=clip_length,stride=stride)
     print("Dataset samples: {}".format(len(trainset)+len(devset)))
     trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True,

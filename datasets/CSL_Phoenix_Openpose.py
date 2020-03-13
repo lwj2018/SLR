@@ -17,11 +17,11 @@ class Record:
 """
 Implementation of CSL Phoenix Dataset
 """
-class CSL_Phoenix_Skeleton(Dataset):
+class CSL_Phoenix_Openpose(Dataset):
     def __init__(self,skeleton_root='',annotation_file='',transform=None,dictionary=None,
                 clip_length=16,
                 stride=4):
-        super(CSL_Phoenix_Skeleton,self).__init__()
+        super(CSL_Phoenix_Openpose,self).__init__()
         self.skeleton_root = skeleton_root
         self.annotation_file = annotation_file
         self.transform = transform
