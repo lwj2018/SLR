@@ -34,7 +34,7 @@ dropout = 0.2
 # Options
 store_name = 'HCN_isolated'
 # checkpoint = None
-checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200305_80.943_HCN_isolated_best.pth.tar'
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/HCN_isolated_best.pth.tar'
 device_list = '0'
 log_interval = 100
 
@@ -60,12 +60,12 @@ if __name__ == '__main__':
     devset = CSL_Isolated_Openpose(skeleton_root=skeleton_root,list_file=val_file,
         length=length)
     print("Dataset samples: {}".format(len(trainset)+len(devset)))
-    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
-    testloader = DataLoader(devset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True)
+    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)
+    testloader = DataLoader(devset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True)
     # Create model
     model = hcn(num_class,dropout=dropout).to(device)
     if checkpoint is not None:
-        start_epoch, best_prec1 = resume_multigpu_model(model,checkpoint)
+        start_epoch, best_prec1 = resume_model(model,checkpoint)
     # Run the model parallelly
     if torch.cuda.device_count() > 1:
         print("Using {} GPUs".format(torch.cuda.device_count()))

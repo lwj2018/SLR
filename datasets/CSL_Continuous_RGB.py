@@ -23,7 +23,7 @@ class CSL_Continuous_RGB(Dataset):
         transform=None,
         dictionary=None,
         clip_length=16,
-        stride=4):
+        stride=8):
         super(CSL_Continuous_RGB,self).__init__()
         self.frame_root = frame_root
         self.transform = transform
