@@ -12,42 +12,40 @@ import torchvision.transforms as transforms
 from models.Transformer import CSL_Transformer
 from utils.trainUtils import train
 from utils.testUtils import test
-from datasets.CSL_Continuous_Openpose import CSL_Continuous_Openpose
+from datasets.CSL_Phoenix_Openpose import CSL_Phoenix_Openpose
 from args import Arguments
-from utils.ioUtils import *
-from utils.textUtils import *
+from utils.ioUtils import save_checkpoint, resume_model
 from utils.critUtils import LabelSmoothing
+from utils.textUtils import build_dictionary, reverse_dictionary
 from torch.utils.tensorboard import SummaryWriter
 import warnings
  
 warnings.filterwarnings('ignore')
 
 # Path setting
-skeleton_root = "/mnt/data/haodong/CSL_Continious_Skeleton"
-train_list = "/home/liweijie/Data/public_dataset/train_list.txt"
-val_list = "/home/liweijie/Data/public_dataset/val_list.txt"
+train_skeleton_root = "/mnt/data/haodong/openpose_output/train"
+train_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-signerindependent-SI5/annotations/manual/train.SI5.corpus.csv"
+dev_skeleton_root = "/mnt/data/haodong/openpose_output/dev"
+dev_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-signerindependent-SI5/annotations/manual/dev.SI5.corpus.csv"
 # Hyper params
-learning_rate = 1e-5
+learning_rate = 1e-6
 batch_size = 4
 epochs = 1000
-d_model = 512
-num_classes = 500
-clip_length = 32
+num_classes = 512
+sample_size = 128
+clip_length = 16
 smoothing = 0.1
-stride = 4
+stride = 8
 # Options
 store_name = 'Transformer_HCN'
 checkpoint = None
-hcn_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
 log_interval = 100
-device_list = '1'
-num_workers = 16
 
 # get arguments
 args = Arguments()
 
 # Use specific gpus
-os.environ["CUDA_VISIBLE_DEVICES"]=device_list
+os.environ["CUDA_VISIBLE_DEVICES"]=args.device_list
 # Device setting
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -64,7 +62,7 @@ def collate(batch):
     tgt_len_list = []
     max_src_len = 0
     max_tgt_len = 0
-    # shape of source is: s x clip_length x J x D
+    # shape of source is: s x 16 x J x D
     # shape of target is: t
     for sample in batch:
         source = torch.Tensor(sample['input'])
@@ -95,7 +93,7 @@ def collate(batch):
         full_tgt = torch.cat([target,tgt_pad], 0)
         full_targets.append(full_tgt)
     # After data processing,
-    # shape of src is N x S x clip_lenth x J x D, where S is max length of this batch
+    # shape of src is N x S x 16 x J x D, where S is max length of this batch
     # shape of tgt is N x T, where T is max length of this batch
     # shape of src_len_list is N
     # shape of tgt_len_list is N
@@ -107,25 +105,24 @@ def collate(batch):
 
 # Train with Transformer
 if __name__ == '__main__':
-    # Build dictionary
-    dictionary = build_isl_dictionary()
+    # build dictionary
+    dictionary = build_dictionary([train_annotation_file,dev_annotation_file])
     reverse_dict = reverse_dictionary(dictionary)
     vocab_size = len(dictionary)
     print("The size of vocabulary is %d"%vocab_size)
     # Load data
-    trainset = CSL_Continuous_Openpose(skeleton_root=skeleton_root,list_file=train_list,dictionary=dictionary,
-            clip_length=clip_length,stride=stride)
-    valset = CSL_Continuous_Openpose(skeleton_root=skeleton_root,list_file=val_list,dictionary=dictionary,
-            clip_length=clip_length,stride=stride)
-    print("Dataset samples: {}".format(len(trainset)+len(valset)))
-    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True,
+    trainset = CSL_Phoenix_Openpose(skeleton_root=train_skeleton_root,annotation_file=train_annotation_file,
+            dictionary=dictionary,clip_length=clip_length,stride=stride)
+    devset = CSL_Phoenix_Openpose(skeleton_root=dev_skeleton_root,annotation_file=dev_annotation_file,
+            dictionary=dictionary,clip_length=clip_length,stride=stride)
+    print("Dataset samples: {}".format(len(trainset)+len(devset)))
+    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True,
             collate_fn=collate)
-    testloader = DataLoader(valset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True,
+    testloader = DataLoader(devset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True,
             collate_fn=collate)
     # Create model
-    model = CSL_Transformer(vocab_size,vocab_size,clip_length=clip_length,
-                num_classes=d_model,modal='skeleton',d_model=d_model).to(device)
-    resume_hcn_module(model, hcn_checkpoint)
+    model = CSL_Transformer(vocab_size,vocab_size,sample_size=sample_size, clip_length=clip_length,
+                num_classes=num_classes,modal='skeleton').to(device)
     if checkpoint is not None:
         start_epoch, best_wer = resume_model(model,checkpoint)
     # Run the model parallelly
@@ -133,17 +130,17 @@ if __name__ == '__main__':
         print("Using {} GPUs".format(torch.cuda.device_count()))
         model = nn.DataParallel(model)
     # Create loss criterion & optimizer
-    criterion = nn.CrossEntropyLoss(ignore_index=0)
-    # criterion = LabelSmoothing(vocab_size,0,smoothing=smoothing)
+    # criterion = nn.CrossEntropyLoss(ignore_index=0)
+    criterion = LabelSmoothing(vocab_size,0,smoothing=smoothing)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     # Start training
     print("Training Started".center(60, '#'))
     for epoch in range(start_epoch, epochs):
-        # Train the model
-        train(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict)
         # Test the model
         wer = test(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict)
+        # Train the model
+        train(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict)
         # Save model
         # remember best wer and save checkpoint
         is_best = wer<best_wer

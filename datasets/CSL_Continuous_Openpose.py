@@ -11,6 +11,7 @@ import sys
 import numpy
 sys.path.append('/home/liweijie/projects/SLR')
 from utils.textUtils import *
+from torch.nn import functional as F
 
 class Record:
     def __init__(self,data):
@@ -25,13 +26,16 @@ class CSL_Continuous_Openpose(Dataset):
     def __init__(self,skeleton_root='',list_file='',
         dictionary=None,
         clip_length=32,
-        stride=8):
+        stride=8,
+        upsample_rate=2):
         super(CSL_Continuous_Openpose,self).__init__()
         self.skeleton_root = skeleton_root
         self.clip_length = clip_length
         self.stride = stride
         self.dictionary = dictionary
         self.list_file = list_file
+        self.upsample_rate = upsample_rate
+
         self.get_data_list()
     
     def get_data_list(self):
@@ -78,14 +82,19 @@ class CSL_Continuous_Openpose(Dataset):
         # Padding
         for i in range(r):
             skeletons.append(skeletons[-1])
-        # After stack, shape is L x J x D, where L is divisible by clip length
+        # After stack, shape is L x J x D, where L is perfectly suit for framing
         skeletons = torch.stack(skeletons, dim=0)
-        # Resample the skeleton sequence with sliding window
+        # Resample the skeleton sequence with framing
         samples = []
         for i in range(0,l+r-self.clip_length+1,self.stride):
             sample = skeletons[i:i+self.clip_length]
             samples.append(sample)
-        data = torch.stack(samples, dim=0)
+        data = torch.cat(samples, dim=0)
+        # Upsample
+        L,J,D = data.size()
+        data = data.unsqueeze(0).permute(0,3,1,2)
+        data = F.upsample(data,size=(self.upsample_rate*L,J),mode='bilinear').contiguous()
+        data = data.permute(0,2,3,1).squeeze(0)
         # After view, shape of data is S x clip_length x J x D, where S is sequence length
         data = data.view( (-1,self.clip_length) + data.size()[-2:] )
         return data
@@ -130,9 +139,9 @@ if __name__ == '__main__':
     dictionary = build_isl_dictionary()
     # Path settings
     skeleton_root = "/home/haodong/Data/CSL_Continious_Skeleton"
-    train_list = "/home/liweijie/Data/public_dataset/train_list_tmp.txt"
+    train_list = "/home/liweijie/Data/public_dataset/train_list.txt"
     val_list = "/home/liweijie/Data/public_dataset/val_list.txt"
     dataset = CSL_Continuous_Openpose(skeleton_root=skeleton_root,list_file=train_list,dictionary=dictionary)
-    print(dataset[0])
+    print(dataset[3000]['input'].size(),dataset[3000]['tgt'].size())
 
 

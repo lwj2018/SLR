@@ -22,7 +22,7 @@ class CSL_Transformer(nn.Module):
                  activation = 'relu',
                  clip_length = 16,
                  sample_size = 128,
-                 num_classes = 512,
+                 num_classes = 500,
                  max_len = 15,
                  modal = 'skeleton'):
         super(CSL_Transformer,self).__init__()
@@ -34,7 +34,7 @@ class CSL_Transformer(nn.Module):
         else:
             self.featureExtractor = HCN.hcn(num_classes,length=clip_length)
         self.feature_dim = num_classes
-        # self.new_fc = nn.Linear(self.feature_dim, d_model)
+        self.new_fc = nn.Linear(self.feature_dim, d_model)
         self.clip_length = clip_length
         self.max_len = max_len
         self.vocab_size = src_vocab_size
@@ -102,7 +102,7 @@ class CSL_Transformer(nn.Module):
         input = input.view( (-1,) + input.size()[-3:] )
         feature = self.featureExtractor(input)
         # After feature extrace, shape of src is: (NxS) x E, E = d_model
-        # src = self.new_fc(feature)
+        src = self.new_fc(feature)
         src = F.normalize(feature,2)
         src = src.view(N,-1,src.size(-1))
         # After permute, shape of src is: S x N x E

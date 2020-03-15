@@ -63,6 +63,7 @@ def itos_clip(idx_list, reverse_dict):
 
 def convert_chinese_to_indices(sentence, dictionary):
     words = jieba.cut(sentence.rstrip('\n'))
+    words = ['<bos>'] + list(words) + ['<eos>']
     indices = stoi(words,dictionary)
     return indices
 
@@ -75,5 +76,8 @@ def build_isl_dictionary():
         data = word.rstrip('\n').split()
         index = int(data[0])
         token = data[1]
-        dictionary[token] = index
+        dictionary[token] = index+3
+    dictionary[0] = '<pad>'
+    dictionary[1] = '<bos>'
+    dictionary[2] = '<eos>'
     return dictionary

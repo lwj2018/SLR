@@ -49,3 +49,17 @@ def resume_skeleton_model(model, checkpoint):
     "Epoch: {}\n"
     "Best: {:.3f}%".format(checkpoint,epoch,best))
     return params_dict['epoch'], params_dict['best_prec1']
+
+def resume_hcn_module(model, checkpoint):
+    model_dict = model.state_dict()
+    params_dict = torch.load(checkpoint)
+    state_dict = params_dict['state_dict']
+    state_dict = {"featureExtractor."+k : v for k,v in state_dict.items()}
+    model_dict.update(state_dict)
+
+    epoch = params_dict['epoch']
+    best = params_dict['best']
+    print("Load HCN module from {}: \n"
+    "Epoch: {}\n"
+    "Best: {:.3f}%".format(checkpoint,epoch,best))
+    return params_dict['epoch'], params_dict['best']

@@ -12,42 +12,39 @@ import torchvision.transforms as transforms
 from models.Transformer import CSL_Transformer
 from utils.trainUtils import train
 from utils.testUtils import test
-from datasets.CSL_Continuous_Openpose import CSL_Continuous_Openpose
+from datasets.CSL_Phoenix_RGB import CSL_Phoenix_RGB
 from args import Arguments
-from utils.ioUtils import *
-from utils.textUtils import *
+from utils.ioUtils import save_checkpoint, resume_model
 from utils.critUtils import LabelSmoothing
+from utils.textUtils import build_dictionary, reverse_dictionary
 from torch.utils.tensorboard import SummaryWriter
 import warnings
  
 warnings.filterwarnings('ignore')
-
 # Path setting
-skeleton_root = "/mnt/data/haodong/CSL_Continious_Skeleton"
-train_list = "/home/liweijie/Data/public_dataset/train_list.txt"
-val_list = "/home/liweijie/Data/public_dataset/val_list.txt"
+train_frame_root = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-multisigner/features/fullFrame-210x260px/train"
+train_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-multisigner/annotations/manual/train.corpus.csv"
+dev_frame_root = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-multisigner/features/fullFrame-210x260px/dev"
+dev_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-multisigner/annotations/manual/dev.corpus.csv"
 # Hyper params
-learning_rate = 1e-5
-batch_size = 4
+learning_rate = 1e-6
+batch_size = 2
 epochs = 1000
-d_model = 512
-num_classes = 500
-clip_length = 32
+sample_size = 128
+num_classes = 512
+clip_length = 16
 smoothing = 0.1
-stride = 4
+stride = 8
 # Options
-store_name = 'Transformer_HCN'
+store_name = 'Transformer_3dres'
 checkpoint = None
-hcn_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
 log_interval = 100
-device_list = '1'
-num_workers = 16
 
 # get arguments
 args = Arguments()
 
 # Use specific gpus
-os.environ["CUDA_VISIBLE_DEVICES"]=device_list
+os.environ["CUDA_VISIBLE_DEVICES"]=args.device_list
 # Device setting
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -64,8 +61,8 @@ def collate(batch):
     tgt_len_list = []
     max_src_len = 0
     max_tgt_len = 0
-    # shape of source is: s x clip_length x J x D
-    # shape of target is: t
+    # shape of source is s x C x 16 x H x W
+    # shape of target is t
     for sample in batch:
         source = torch.Tensor(sample['input'])
         target = torch.LongTensor(sample['tgt'])
@@ -87,7 +84,7 @@ def collate(batch):
     full_targets = []
     for source, target, src_len, tgt_len in zip(sources, targets, src_len_list, tgt_len_list):
         # pad the source
-        src_pad = torch.zeros( (max_src_len-src_len,) + source.size()[-3:] )
+        src_pad = torch.zeros( (max_src_len-src_len,) + source.size()[-4:] )
         full_src = torch.cat([source, src_pad], 0)
         full_sources.append(full_src)
         # pad the target
@@ -95,7 +92,7 @@ def collate(batch):
         full_tgt = torch.cat([target,tgt_pad], 0)
         full_targets.append(full_tgt)
     # After data processing,
-    # shape of src is N x S x clip_lenth x J x D, where S is max length of this batch
+    # shape of src is N x S x C x 16 x H x W, where S is max length of this batch
     # shape of tgt is N x T, where T is max length of this batch
     # shape of src_len_list is N
     # shape of tgt_len_list is N
@@ -107,25 +104,27 @@ def collate(batch):
 
 # Train with Transformer
 if __name__ == '__main__':
-    # Build dictionary
-    dictionary = build_isl_dictionary()
+    # build dictionary
+    dictionary = build_dictionary([train_annotation_file,dev_annotation_file])
     reverse_dict = reverse_dictionary(dictionary)
     vocab_size = len(dictionary)
     print("The size of vocabulary is %d"%vocab_size)
     # Load data
-    trainset = CSL_Continuous_Openpose(skeleton_root=skeleton_root,list_file=train_list,dictionary=dictionary,
-            clip_length=clip_length,stride=stride)
-    valset = CSL_Continuous_Openpose(skeleton_root=skeleton_root,list_file=val_list,dictionary=dictionary,
-            clip_length=clip_length,stride=stride)
-    print("Dataset samples: {}".format(len(trainset)+len(valset)))
-    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True,
+    transform = transforms.Compose([transforms.Resize([sample_size, sample_size]),
+                                        transforms.ToTensor(),
+                                        transforms.Normalize(mean=[0.5], std=[0.5])])
+    trainset = CSL_Phoenix_RGB(frame_root=train_frame_root,annotation_file=train_annotation_file,
+            transform=transform,dictionary=dictionary,clip_length=clip_length,stride=stride)
+    devset = CSL_Phoenix_RGB(frame_root=dev_frame_root,annotation_file=dev_annotation_file,
+            transform=transform,dictionary=dictionary,clip_length=clip_length,stride=stride)
+    print("Dataset samples: {}".format(len(trainset)+len(devset)))
+    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True,
             collate_fn=collate)
-    testloader = DataLoader(valset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True,
+    testloader = DataLoader(devset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True,
             collate_fn=collate)
     # Create model
-    model = CSL_Transformer(vocab_size,vocab_size,clip_length=clip_length,
-                num_classes=d_model,modal='skeleton',d_model=d_model).to(device)
-    resume_hcn_module(model, hcn_checkpoint)
+    model = CSL_Transformer(vocab_size,vocab_size,sample_size=sample_size, clip_length=clip_length,
+                num_classes=num_classes,modal='rgb').to(device)
     if checkpoint is not None:
         start_epoch, best_wer = resume_model(model,checkpoint)
     # Run the model parallelly
@@ -133,8 +132,8 @@ if __name__ == '__main__':
         print("Using {} GPUs".format(torch.cuda.device_count()))
         model = nn.DataParallel(model)
     # Create loss criterion & optimizer
-    criterion = nn.CrossEntropyLoss(ignore_index=0)
-    # criterion = LabelSmoothing(vocab_size,0,smoothing=smoothing)
+    # criterion = nn.CrossEntropyLoss()
+    criterion = LabelSmoothing(vocab_size,0,smoothing=smoothing)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     # Start training
@@ -156,6 +155,4 @@ if __name__ == '__main__':
         print("Epoch {} Model Saved".format(epoch+1).center(60, '#'))
 
     print("Training Finished".center(60, '#'))
-
-
 
