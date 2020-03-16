@@ -22,7 +22,7 @@ val_list = "/home/liweijie/Data/public_dataset/val_list.txt"
 model_path = "checkpoint"
 
 # Use specific gpus
-os.environ["CUDA_VISIBLE_DEVICES"]='1'
+os.environ["CUDA_VISIBLE_DEVICES"]='0'
 # Device setting
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -35,7 +35,7 @@ clip_length = 32
 stride = 4
 # Options
 store_name = '3Dres_isolated'
-checkpoint = '/home/liweijie/projects/SLR/checkpoint/HCN_isolated_best.pth.tar'
+checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
 log_interval = 20
 
 best_prec1 = 0.0
@@ -67,16 +67,16 @@ if __name__ == '__main__':
     for i,batch in enumerate(trainloader):
         if i==0:
             input, tgt = batch['input'], batch['tgt']
-            # Shape of input is: N x S x clip_length x J x D
-            N,S,l,J,D = input.size()
             input = input.to(device)
-            # After view & permute, shape of input is: N x D x (Sxl) x J
-            input = input.view(N,-1,J,D).permute(0,3,1,2)
-            input = F.upsample(input,size=(2*S*l,J),mode='bilinear').contiguous()
-            # After view, shape of input is: N x D x (2xS) x l x J
-            input = input.view(N,D,-1,l,J)
-            # After permute, shape of input is: N x (2xS) x l x J x D
-            input = input.permute(0,2,3,4,1)
+            # # Shape of input is: N x S x clip_length x J x D
+            # N,S,l,J,D = input.size()
+            # # After view & permute, shape of input is: N x D x (Sxl) x J
+            # input = input.view(N,-1,J,D).permute(0,3,1,2)
+            # input = F.upsample(input,size=(2*S*l,J),mode='bilinear').contiguous()
+            # # After view, shape of input is: N x D x (2xS) x l x J
+            # input = input.view(N,D,-1,l,J)
+            # # After permute, shape of input is: N x (2xS) x l x J x D
+            # input = input.permute(0,2,3,4,1)
             input = input.view( (-1,) + input.size()[-3:] )
             output = model(input)
             output = output.argmax(1)

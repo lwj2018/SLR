@@ -27,7 +27,7 @@ val_file = "input/val_list.txt"
 model_path = "./checkpoint"
 # Hyper params
 learning_rate = 1e-5
-batch_size = 4
+batch_size = 8
 epochs = 1000
 sample_size = 224
 num_class = 500
@@ -37,7 +37,8 @@ dropout = 0.2
 store_name = 'VAE_isolated'
 checkpoint = None
 log_interval = 100
-device_list = '1'
+device_list = '0'
+num_workers = 8
 
 # Get arguments
 args = Arguments()
@@ -61,8 +62,8 @@ if __name__ == '__main__':
     devset = CSL_Isolated_Openpose(skeleton_root=skeleton_root,list_file=val_file,
         length=length)
     print("Dataset samples: {}".format(len(trainset)+len(devset)))
-    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
-    testloader = DataLoader(devset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True)
+    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+    testloader = DataLoader(devset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
     # Create model
     model = VAE(num_class,dropout=dropout).to(device)
     if checkpoint is not None:

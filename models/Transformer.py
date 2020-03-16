@@ -20,7 +20,7 @@ class CSL_Transformer(nn.Module):
                  dim_feedforward = 2048, 
                  dropout = 0.1, 
                  activation = 'relu',
-                 clip_length = 16,
+                 clip_length = 32,
                  sample_size = 128,
                  num_classes = 500,
                  max_len = 15,
@@ -103,7 +103,7 @@ class CSL_Transformer(nn.Module):
         feature = self.featureExtractor(input)
         # After feature extrace, shape of src is: (NxS) x E, E = d_model
         src = self.new_fc(feature)
-        src = F.normalize(feature,2)
+        src = F.normalize(src,2)
         src = src.view(N,-1,src.size(-1))
         # After permute, shape of src is: S x N x E
         src = src.permute(1,0,2)

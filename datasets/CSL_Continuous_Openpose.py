@@ -27,7 +27,8 @@ class CSL_Continuous_Openpose(Dataset):
         dictionary=None,
         clip_length=32,
         stride=8,
-        upsample_rate=2):
+        upsample_rate=2,
+        add_two_end=True):
         super(CSL_Continuous_Openpose,self).__init__()
         self.skeleton_root = skeleton_root
         self.clip_length = clip_length
@@ -35,6 +36,7 @@ class CSL_Continuous_Openpose(Dataset):
         self.dictionary = dictionary
         self.list_file = list_file
         self.upsample_rate = upsample_rate
+        self.add_two_end = add_two_end
 
         self.get_data_list()
     
@@ -102,7 +104,7 @@ class CSL_Continuous_Openpose(Dataset):
     def __getitem__(self, idx):
         record = self.data_list[idx]
         frame_path = record.frame_path
-        sentence = convert_chinese_to_indices(record.sentence,self.dictionary) 
+        sentence = convert_chinese_to_indices(record.sentence,self.dictionary,self.add_two_end) 
         N = len(sentence)
         skeletons = self.read_skeletons(frame_path,N)
         sentence = torch.LongTensor(sentence)

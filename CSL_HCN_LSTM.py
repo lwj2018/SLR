@@ -9,9 +9,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 import torchvision.transforms as transforms
-from models.Transformer import CSL_Transformer
-from utils.trainUtils import train
-from utils.testUtils import test
+from models.HCN_LSTM import hcn_lstm
+from utils.trainUtils import train_hcn_lstm
+from utils.testUtils import test_hcn_lstm
 from datasets.CSL_Continuous_Openpose import CSL_Continuous_Openpose
 from args import Arguments
 from utils.ioUtils import *
@@ -29,20 +29,20 @@ train_list = "/home/liweijie/Data/public_dataset/train_list.txt"
 val_list = "/home/liweijie/Data/public_dataset/val_list.txt"
 # Hyper params
 learning_rate = 1e-5
-batch_size = 4
+batch_size = 8
 epochs = 1000
-d_model = 512
+hidden_dim = 512
 num_classes = 500
 clip_length = 32
 smoothing = 0.1
 stride = 4
 # Options
-store_name = 'Transformer_HCN'
+store_name = 'HCN_LSTM'
 checkpoint = None
 hcn_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
 log_interval = 100
-device_list = '1'
-num_workers = 16
+device_list = '3'
+num_workers = 8
 
 # get arguments
 args = Arguments()
@@ -67,17 +67,17 @@ if __name__ == '__main__':
     print("The size of vocabulary is %d"%vocab_size)
     # Load data
     trainset = CSL_Continuous_Openpose(skeleton_root=skeleton_root,list_file=train_list,dictionary=dictionary,
-            clip_length=clip_length,stride=stride,add_two_end=True)
+            clip_length=clip_length,stride=stride,add_two_end=False)
     valset = CSL_Continuous_Openpose(skeleton_root=skeleton_root,list_file=val_list,dictionary=dictionary,
-            clip_length=clip_length,stride=stride,add_two_end=True)
+            clip_length=clip_length,stride=stride,add_two_end=False)
     print("Dataset samples: {}".format(len(trainset)+len(valset)))
     trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True,
             collate_fn=skeleton_collate)
     testloader = DataLoader(valset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True,
             collate_fn=skeleton_collate)
     # Create model
-    model = CSL_Transformer(vocab_size,vocab_size,clip_length=clip_length,
-                num_classes=num_classes,modal='skeleton',d_model=d_model).to(device)
+    model = hcn_lstm(vocab_size,clip_length=clip_length,
+                num_classes=num_classes,hidden_dim=hidden_dim).to(device)
     model = resume_hcn_module(model, hcn_checkpoint)
     if checkpoint is not None:
         start_epoch, best_wer = resume_model(model,checkpoint)
@@ -86,7 +86,7 @@ if __name__ == '__main__':
         print("Using {} GPUs".format(torch.cuda.device_count()))
         model = nn.DataParallel(model)
     # Create loss criterion & optimizer
-    criterion = nn.CrossEntropyLoss(ignore_index=0)
+    criterion = nn.CTCLoss()
     # criterion = LabelSmoothing(vocab_size,0,smoothing=smoothing)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -95,9 +95,9 @@ if __name__ == '__main__':
     print("Training Started".center(60, '#'))
     for epoch in range(start_epoch, epochs):
         # Train the model
-        train(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict)
+        train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict)
         # Test the model
-        wer = test(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict)
+        wer = test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict)
         # Save model
         # remember best wer and save checkpoint
         is_best = wer<best_wer

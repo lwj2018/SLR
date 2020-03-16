@@ -7,7 +7,7 @@ from torch.nn import functional as F
 class VAE(nn.Module):
     def __init__(self,num_class, in_channel=2,
                             length=32,
-                            num_joint=4+2*21+70,
+                            num_joint=25+2*21+70,
                             dropout=0.2,
                             latent_dim=256,
                             conv_feature_dim=1024):
