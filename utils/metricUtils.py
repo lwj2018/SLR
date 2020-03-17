@@ -1,7 +1,7 @@
 import torch
 import numpy
 from torchtext.data.metrics import bleu_score
-from utils.textUtils import itos,itos_clip
+from utils.textUtils import itos,itos_clip,compress
 
 def early_stop(sequence):
     if type(sequence[0])==int:
@@ -41,14 +41,14 @@ def count_bleu(output, trg, reverse_dict):
         output = output.permute(1,0,2).max(2)[1]
         output = output.data.cpu().numpy()
         # Early stop & remove padding
-        candidate_corpus = [itos_clip(idx_list[idx_list!=0], reverse_dict) for idx_list in output]
+        candidate_corpus = [itos_clip(compress(idx_list), reverse_dict) for idx_list in output]
     elif len(output.size())==2:
         output = output.argmax(1).unsqueeze(0)
         output = output.data.cpu().numpy()
-        candidate_corpus = [itos_clip(idx_list, reverse_dict) for idx_list in output]
+        candidate_corpus = [itos_clip(compress(idx_list), reverse_dict) for idx_list in output]
     trg = trg.permute(1,0)
     trg = trg.data.cpu().numpy()
-    references_corpus = [[itos(idx_list[idx_list!=0], reverse_dict)] for idx_list in trg]
+    references_corpus = [[itos(idx_list, reverse_dict)] for idx_list in trg]
     return bleu_score(candidate_corpus, references_corpus)
 
 def count_wer(output, tgt):
@@ -73,6 +73,9 @@ def count_wer(output, tgt):
             # ignore padding
             o = o[o!=0]
             t = t[t!=0]
+            # compress
+            o = compress(o)
+            t = compress(t)
             total_wer += wer(t,o)
         avg_wer = total_wer/output.shape[0]
         return avg_wer

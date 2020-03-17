@@ -240,6 +240,8 @@ def test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, wri
 
             # forward
             outputs = model(input, src_len_list)
+            # print(outputs.argmax(2).permute(1,0))
+            # print(tgt)
 
             # compute the loss
             loss = criterion(outputs,tgt,src_len_list,tgt_len_list)
@@ -253,9 +255,10 @@ def test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, wri
             end = time.time()
 
             # update average value
-            losses.update(loss)
-            avg_wer.update(wer)
-            avg_bleu.update(bleu)
+            N = tgt.size(0)
+            losses.update(loss,N)
+            avg_wer.update(wer,N)
+            avg_bleu.update(bleu,N)
 
             if i % log_interval == log_interval-1:
                 # Warning! when N = 1, have to unsqueeze
@@ -263,10 +266,10 @@ def test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, wri
                 # outputs = outputs.unsqueeze(1).permute(1,0,2).max(2)[1]
                 outputs = outputs.permute(1,0,2).max(2)[1]
                 outputs = outputs.data.cpu().numpy()
-                outputs = [' '.join(itos(idx_list, reverse_dict)) for idx_list in outputs]
+                outputs = [' '.join(itos(compress(idx_list), reverse_dict)) for idx_list in outputs]
                 tgt = tgt.view(-1,tgt.size(-1))
                 tgt = tgt.data.cpu().numpy()
-                tgt = [' '.join(itos(idx_list, reverse_dict)) for idx_list in tgt]
+                tgt = [' '.join(itos(compress(idx_list), reverse_dict)) for idx_list in tgt]
                 writer.add_text('outputs', 
                                 str(outputs),
                                 epoch * len(testloader) + i)
@@ -276,8 +279,8 @@ def test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, wri
 
         info = ('[Test] Epoch: [{0}][len: {1}]\t'
                 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                'Batch Wer {wer.avg:.4f}\t'
-                'Batch Bleu {bleu.avg:.4f}\t'
+                'Batch Wer {wer.avg:.5f}\t'
+                'Batch Bleu {bleu.avg:.5f}\t'
                 .format(
                     epoch, len(testloader), batch_time=batch_time,
                     data_time=data_time, loss=losses, wer=avg_wer, bleu=avg_bleu

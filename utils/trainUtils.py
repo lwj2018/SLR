@@ -289,16 +289,17 @@ def train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_
         end = time.time()
 
         # update average value
-        losses.update(loss.item())
-        avg_wer.update(wer)
-        avg_bleu.update(bleu)
+        N = tgt.size(0)
+        losses.update(loss.item(),N)
+        avg_wer.update(wer,N)
+        avg_bleu.update(bleu,N)
 
         if i==0 or i % log_interval == log_interval-1:
             info = ('Epoch: [{0}][{1}/{2}]\t'
                     'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t'
                     'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                    'Wer {wer.val:.4f} ({wer.avg:.4f})\t'
+                    'Wer {wer.val:.5f} ({wer.avg:.5f})\t'
                     .format(
                         epoch, i, len(trainloader), batch_time=batch_time,
                         data_time=data_time, loss=losses,  wer=avg_wer,

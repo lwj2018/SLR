@@ -105,7 +105,7 @@ if __name__ == '__main__':
         save_checkpoint({
             'epoch': epoch + 1,
             'state_dict': model.state_dict(),
-            'best_wer': best_wer
+            'best': best_wer
         }, is_best, args.model_path, store_name)
         print("Epoch {} Model Saved".format(epoch+1).center(60, '#'))
 

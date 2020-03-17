@@ -53,19 +53,34 @@ def stoi(token_list, dictionary):
             index_list.append(index)
     return index_list
 
+def compress(input):
+    input = list(input)
+    last_item = input[0]
+    compress_list = [last_item]
+    for i,item in enumerate(input):
+        if i>0:
+            if item!=last_item:
+                compress_list.append(item)
+                last_item = item
+    return compress_list
+
 def itos_clip(idx_list, reverse_dict):
     sentence = []
     for idx in idx_list:
-        word = reverse_dict[idx]
-        sentence.append(word)
-        if word=='<eos>':
-            break
+        # ignore pad
+        if idx!=0:
+            word = reverse_dict[idx]
+            sentence.append(word)
+            if word=='<eos>':
+                break
     return sentence
 
 def convert_chinese_to_indices(sentence, dictionary, add_two_end):
     words = jieba.cut(sentence.rstrip('\n'))
     if add_two_end:
         words = ['<bos>'] + list(words) + ['<eos>']
+    else:
+        words = list(words)+['<eos>']
     indices = stoi(words,dictionary)
     return indices
 

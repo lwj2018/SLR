@@ -28,8 +28,8 @@ skeleton_root = "/mnt/data/haodong/CSL_Continious_Skeleton"
 train_list = "/home/liweijie/Data/public_dataset/train_list.txt"
 val_list = "/home/liweijie/Data/public_dataset/val_list.txt"
 # Hyper params
-learning_rate = 1e-5
-batch_size = 8
+learning_rate = 1e-6
+batch_size = 4
 epochs = 1000
 hidden_dim = 512
 num_classes = 500
@@ -38,10 +38,10 @@ smoothing = 0.1
 stride = 4
 # Options
 store_name = 'HCN_LSTM'
-checkpoint = None
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200317_HCN_LSTM_checkpoint.pth.tar'
 hcn_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
 log_interval = 100
-device_list = '3'
+device_list = '2'
 num_workers = 8
 
 # get arguments
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     print("Dataset samples: {}".format(len(trainset)+len(valset)))
     trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True,
             collate_fn=skeleton_collate)
-    testloader = DataLoader(valset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True,
+    testloader = DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True,
             collate_fn=skeleton_collate)
     # Create model
     model = hcn_lstm(vocab_size,clip_length=clip_length,
@@ -105,7 +105,7 @@ if __name__ == '__main__':
         save_checkpoint({
             'epoch': epoch + 1,
             'state_dict': model.state_dict(),
-            'best_wer': best_wer
+            'best': best_wer
         }, is_best, args.model_path, store_name)
         print("Epoch {} Model Saved".format(epoch+1).center(60, '#'))
 
