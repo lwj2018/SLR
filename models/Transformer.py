@@ -96,16 +96,16 @@ class CSL_Transformer(nn.Module):
         return src
 
     def extract_skeleton_feature(self, input):
-        # shape of input is: N x S x 16 x J x D, S is the sequence length
-        # After view, shape of input is: (NxS) x 16 x J x D
+        # shape of input is: N x S x clip_length x J x D, S is the sequence length
+        # After view, shape of input is: (NxS) x clip_length x J x D
         N = input.size(0)
         input = input.view( (-1,) + input.size()[-3:] )
         feature = self.featureExtractor(input)
-        # After feature extrace, shape of src is: (NxS) x E, E = d_model
+        # After feature extract, shape of src is: (NxS) x num_class
         src = self.new_fc(feature)
         src = F.normalize(src,2)
         src = src.view(N,-1,src.size(-1))
-        # After permute, shape of src is: S x N x E
+        # After permute, shape of src is: S x N x E, where E = d_model
         src = src.permute(1,0,2)
         src = src * math.sqrt(self.d_model)
         src = self.dropout(self.pos_encoder(src))

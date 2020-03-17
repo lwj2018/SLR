@@ -41,7 +41,8 @@ def reverse_dictionary(dictionary):
     return reverse_dict
 
 def itos(idx_list, reverse_dict):
-    sentence = [reverse_dict[idx] for idx in idx_list]
+    # ignore pad
+    sentence = [reverse_dict[idx] for idx in idx_list if idx!=0]
     return sentence
 
 def stoi(token_list, dictionary):
