@@ -266,10 +266,10 @@ def test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, wri
                 # outputs = outputs.unsqueeze(1).permute(1,0,2).max(2)[1]
                 outputs = outputs.permute(1,0,2).max(2)[1]
                 outputs = outputs.data.cpu().numpy()
-                outputs = [' '.join(itos(compress(idx_list), reverse_dict)) for idx_list in outputs]
+                outputs = [' '.join(itos_clip(compress(idx_list), reverse_dict)) for idx_list in outputs]
                 tgt = tgt.view(-1,tgt.size(-1))
                 tgt = tgt.data.cpu().numpy()
-                tgt = [' '.join(itos(compress(idx_list), reverse_dict)) for idx_list in tgt]
+                tgt = [' '.join(itos_clip(compress(idx_list), reverse_dict)) for idx_list in tgt]
                 writer.add_text('outputs', 
                                 str(outputs),
                                 epoch * len(testloader) + i)

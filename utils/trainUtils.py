@@ -198,7 +198,7 @@ def train_vae(model, criterion, optimizer, trainloader, device, epoch, log_inter
         loss_c = criterion(outputs, target)
         loss_r = model.loss_function(recons,input,mu,log_var,M_N=mat.size()[0]/len(trainloader))['loss']
 
-        # backward & optimize
+        # backward & optimize 
         loss_c.backward()
         loss_r.backward()
         optimizer.step()

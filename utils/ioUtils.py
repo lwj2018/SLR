@@ -18,11 +18,11 @@ def resume_model(model, checkpoint):
     model.load_state_dict(state_dict)
 
     epoch = params_dict['epoch']
-    best = params_dict['best_wer']
+    best = params_dict['best']
     print("Load model from {}: \n"
     "Epoch: {}\n"
     "Best: {:.3f}%".format(checkpoint,epoch,best))
-    return params_dict['epoch'], params_dict['best_wer']
+    return params_dict['epoch'], params_dict['best']
 
 def resume_multigpu_model(model, checkpoint):
     params_dict = torch.load(checkpoint)

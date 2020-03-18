@@ -73,10 +73,11 @@ class CSL_Continuous_Openpose(Dataset):
         # Tatol number of clips must be larger than N
         # so length of skeletons must be larger the (N-1)* stride + clip_length
         l = len(skeleton_list)
-        remainder_num = (l-self.clip_length)%self.stride
-        r = self.stride - remainder_num if remainder_num>0 else 0
-        clips_num = (l+r-self.clip_length)//self.stride
-        if clips_num < N: r = r + (N-clips_num)*self.stride
+        ur = self.upsample_rate
+        remainder_num = (l-self.clip_length//ur)%(self.stride//ur)
+        r = self.stride//ur - remainder_num if remainder_num>0 else 0
+        clips_num = (l+r-self.clip_length//ur)//(self.stride//ur)
+        if clips_num < N: r = r + (N-clips_num)*(self.stride//ur)
         # Read skeleton data
         for i in range(l):
             skeleton = self.read_json(os.path.join(frame_path, skeleton_list[i]))
@@ -85,18 +86,18 @@ class CSL_Continuous_Openpose(Dataset):
         for i in range(r):
             skeletons.append(skeletons[-1])
         # After stack, shape is L x J x D, where L is perfectly suit for framing
-        skeletons = torch.stack(skeletons, dim=0)
-        # Resample the skeleton sequence with framing
-        samples = []
-        for i in range(0,l+r-self.clip_length+1,self.stride):
-            sample = skeletons[i:i+self.clip_length]
-            samples.append(sample)
-        data = torch.cat(samples, dim=0)
+        data = torch.stack(skeletons, dim=0)
         # Upsample
         L,J,D = data.size()
         data = data.unsqueeze(0).permute(0,3,1,2)
         data = F.upsample(data,size=(self.upsample_rate*L,J),mode='bilinear').contiguous()
         data = data.permute(0,2,3,1).squeeze(0)
+        # Resample the skeleton sequence with framing
+        samples = []
+        for i in range(0,(l+r)*ur-self.clip_length+1,self.stride):
+            sample = data[i:i+self.clip_length]
+            samples.append(sample)
+        data = torch.cat(samples, dim=0)
         # After view, shape of data is S x clip_length x J x D, where S is sequence length
         data = data.view( (-1,self.clip_length) + data.size()[-2:] )
         return data
@@ -138,7 +139,7 @@ def min(array):
 # Test
 if __name__ == '__main__':
     # Build dictionary
-    dictionary = build_isl_dictionary()
+    dictionary = build_csl_dictionary()
     # Path settings
     skeleton_root = "/home/haodong/Data/CSL_Continious_Skeleton"
     train_list = "/home/liweijie/Data/public_dataset/train_list.txt"

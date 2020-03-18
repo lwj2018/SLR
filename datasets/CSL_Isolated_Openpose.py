@@ -36,7 +36,7 @@ class VideoRecord(object):
 
 class CSL_Isolated_Openpose(data.Dataset):
     
-    def __init__(self, skeleton_root, list_file, length=32):
+    def __init__(self, skeleton_root, list_file, length=32, is_normalize=True):
         self.skeleton_root = skeleton_root
         self.list_file = list_file
         self.length = length
@@ -44,6 +44,7 @@ class CSL_Isolated_Openpose(data.Dataset):
         self.height = height
         self.face_cut_size = face_cut_size
         self.hand_cut_size = hand_cut_size
+        self.is_normalize = is_normalize
         
         self._parse_list()
 
@@ -135,7 +136,8 @@ class CSL_Isolated_Openpose(data.Dataset):
         # 第三维是置信度，不需要
         mat = mat[:,0:2]
         # Normalize
-        mat = self.normalize(mat)
+        if self.is_normalize:
+            mat = self.normalize(mat)
         return mat
 
     def select_skeleton_indices(self,input):

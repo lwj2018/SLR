@@ -38,7 +38,7 @@ smoothing = 0.1
 stride = 4
 # Options
 store_name = 'HCN_LSTM'
-checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200317_HCN_LSTM_checkpoint.pth.tar'
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200318_HCN_LSTM_best.pth.tar'
 hcn_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
 log_interval = 100
 device_list = '2'

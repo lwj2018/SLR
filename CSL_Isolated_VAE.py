@@ -27,7 +27,7 @@ val_file = "input/val_list.txt"
 model_path = "./checkpoint"
 # Hyper params
 learning_rate = 1e-5
-batch_size = 8
+batch_size = 4
 epochs = 1000
 sample_size = 224
 num_class = 500
@@ -37,7 +37,7 @@ dropout = 0.2
 store_name = 'VAE_isolated'
 checkpoint = None
 log_interval = 100
-device_list = '0'
+device_list = '1'
 num_workers = 8
 
 # Get arguments
@@ -58,9 +58,9 @@ start_epoch = 0
 if __name__ == '__main__':
     # Load data
     trainset = CSL_Isolated_Openpose(skeleton_root=skeleton_root,list_file=train_file,
-        length=length)
+        length=length,is_normalize=False)
     devset = CSL_Isolated_Openpose(skeleton_root=skeleton_root,list_file=val_file,
-        length=length)
+        length=length,is_normalize=False)
     print("Dataset samples: {}".format(len(trainset)+len(devset)))
     trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
     testloader = DataLoader(devset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
@@ -79,10 +79,10 @@ if __name__ == '__main__':
     # Start training
     print("Training Started".center(60, '#'))
     for epoch in range(start_epoch, epochs):
-        # Test the model
-        prec1 = test_vae(model, criterion, testloader, device, epoch, log_interval, writer)
         # Train the model
         train_vae(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer)
+        # Test the model
+        prec1 = test_vae(model, criterion, testloader, device, epoch, log_interval, writer)
         # Save model
         # remember best prec1 and save checkpoint
         is_best = prec1>best_prec1

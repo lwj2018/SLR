@@ -36,12 +36,13 @@ dropout = 0.2
 store_name = 'VAE_isolated'
 checkpoint = '/home/liweijie/projects/SLR/checkpoint/VAE_isolated_checkpoint.pth.tar'
 log_interval = 100
+device_list = '1'
 
 # Get arguments
 args = Arguments()
 
 # Use specific gpus
-os.environ["CUDA_VISIBLE_DEVICES"]=args.device_list
+os.environ["CUDA_VISIBLE_DEVICES"]=device_list
 # Device setting
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

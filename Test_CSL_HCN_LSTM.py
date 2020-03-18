@@ -38,10 +38,10 @@ smoothing = 0.1
 stride = 4
 # Options
 store_name = 'HCN_LSTM'
-checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200317_HCN_LSTM_checkpoint.pth.tar'
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/HCN_LSTM_checkpoint.pth.tar'
 log_interval = 100
-device_list = '0'
-num_workers = 8
+device_list = '1'
+num_workers = 0
 
 # get arguments
 args = Arguments()
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     print("Evaluation Started".center(60, '#'))
     for epoch in range(start_epoch, start_epoch+1):
         # Test the model
-        wer = test_hcn_lstm(model, criterion, trainloader, device, epoch, log_interval, writer, reverse_dict)
+        wer = test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict)
 
     print("Evaluation Finished".center(60, '#'))
 
