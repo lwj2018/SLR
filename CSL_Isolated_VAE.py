@@ -39,6 +39,7 @@ checkpoint = None
 log_interval = 100
 device_list = '1'
 num_workers = 8
+output_path = 'obj/vae_generate_CSL_Continuous'
 
 # Get arguments
 args = Arguments()
@@ -82,7 +83,7 @@ if __name__ == '__main__':
         # Train the model
         train_vae(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer)
         # Test the model
-        prec1 = test_vae(model, criterion, testloader, device, epoch, log_interval, writer)
+        prec1 = test_vae(model, criterion, testloader, device, epoch, log_interval, writer, output_path)
         # Save model
         # remember best prec1 and save checkpoint
         is_best = prec1>best_prec1

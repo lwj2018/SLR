@@ -77,7 +77,7 @@ def test_isolated(model, criterion, testloader, device, epoch, log_interval, wri
 
     return top1.avg
 
-def test_vae(model, criterion, testloader, device, epoch, log_interval, writer):
+def test_vae(model, criterion, testloader, device, epoch, log_interval, writer, output_path):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -86,7 +86,6 @@ def test_vae(model, criterion, testloader, device, epoch, log_interval, writer):
     # Set eval mode
     model.eval()
     # create output path
-    output_path = 'obj/vae_generate'
     if not os.path.exists(output_path): os.makedirs(output_path)
 
     end = time.time()

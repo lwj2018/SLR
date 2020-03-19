@@ -13,6 +13,7 @@ from models.VAE import VAE
 from utils.trainUtils import train_vae
 from utils.testUtils import test_vae
 from datasets.CSL_Isolated_Openpose import CSL_Isolated_Openpose
+from datasets.CSL_Continuous_Openpose import CSL_Continuous_Openpose
 from args import Arguments
 from utils.ioUtils import *
 from utils.critUtils import LabelSmoothing
@@ -37,6 +38,7 @@ store_name = 'VAE_isolated'
 checkpoint = '/home/liweijie/projects/SLR/checkpoint/VAE_isolated_checkpoint.pth.tar'
 log_interval = 100
 device_list = '1'
+output_path = 'obj/vae_generate_CSL_Continuous'
 
 # Get arguments
 args = Arguments()
@@ -78,7 +80,7 @@ if __name__ == '__main__':
     print("Test Started".center(60, '#'))
     for epoch in range(start_epoch, start_epoch+1):
         # Test the model
-        prec1 = test_vae(model, criterion, testloader, device, epoch, log_interval, writer)
+        prec1 = test_vae(model, criterion, testloader, device, epoch, log_interval, writer, output_path)
 
     print("Test Finished".center(60, '#'))
 
