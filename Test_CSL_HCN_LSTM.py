@@ -90,7 +90,7 @@ if __name__ == '__main__':
     print("Evaluation Started".center(60, '#'))
     for epoch in range(start_epoch, start_epoch+1):
         # Test the model
-        wer = test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict)
+        wer = test_hcn_lstm(model, criterion, trainloader, device, epoch, log_interval, writer, reverse_dict)
 
     print("Evaluation Finished".center(60, '#'))
 
