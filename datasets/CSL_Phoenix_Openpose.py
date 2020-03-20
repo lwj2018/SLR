@@ -18,17 +18,19 @@ class Record:
 Implementation of CSL Phoenix Dataset
 """
 class CSL_Phoenix_Openpose(Dataset):
-    def __init__(self,skeleton_root='',annotation_file='',transform=None,dictionary=None,
-                clip_length=16,
-                stride=4):
+    def __init__(self,skeleton_root='',annotation_file='',
+                dictionary=None,
+                clip_length=32,
+                stride=4,
+                is_normalize=True):
         super(CSL_Phoenix_Openpose,self).__init__()
         self.skeleton_root = skeleton_root
         self.annotation_file = annotation_file
-        self.transform = transform
         self.clip_length = clip_length
         self.stride = stride
         self.dictionary = dictionary
         self.stride = stride
+        self.is_normalize = is_normalize
         self.prepare()
         self.get_data_list()
 
@@ -44,7 +46,7 @@ class CSL_Phoenix_Openpose(Dataset):
     def process_sentence(self,sentence):
         sentence = [tok.text for tok in self.lang_model.tokenizer(sentence) 
             if not tok.text in self.punctuation]
-        sentence = ['<bos>'] + sentence + ['<eos>']
+        sentence = sentence + ['<eos>']
         indices = [self.dictionary[word] for word in sentence 
             if word in self.dictionary.keys()]
         return indices
@@ -71,6 +73,9 @@ class CSL_Phoenix_Openpose(Dataset):
             mat = mat[0]
         # 第3维是置信度，不需要
         mat = mat[:,:2]
+        # Normalize
+        if self.is_normalize:
+            mat = self.normalize(mat)
         mat = torch.Tensor(mat)
         return mat
 
@@ -103,7 +108,7 @@ class CSL_Phoenix_Openpose(Dataset):
             sample = skeletons[i:i+self.clip_length]
             samples.append(sample)
         data = torch.stack(samples, dim=0)
-        # After view, shape of data is S x 16 x J x D, where S is sequence length
+        # After view, shape of data is S x clip_length x J x D, where S is sequence length
         data = data.view( (-1,self.clip_length) + data.size()[-2:] )
         return data
 
@@ -119,6 +124,27 @@ class CSL_Phoenix_Openpose(Dataset):
         
     def __len__(self):
         return len(self.data_list)
+
+    def normalize(self,mat):
+        # Shape of mat is: J x D
+        max_x = numpy.max(mat[:,0])
+        min_x = min(mat[:,0])
+        max_y = numpy.max(mat[:,1])
+        min_y = min(mat[:,1])
+        center_x = (max_x+min_x)/2
+        center_y = (max_y+min_y)/2
+        mat = (mat-[center_x,center_y])/[(max_x-min_x)/2,(max_y-min_y)/2]
+        # TEST
+        # print("max_x: %.2f,min_x: %.2f,max_y: %.2f,min_y: %.2f"%(max_x,min_x,max_y,min_y))
+        return mat
+
+def min(array):
+    threshold = 0.1
+    min = 999999
+    for x in array:
+        if x>threshold and x<min:
+            min = x
+    return min
 
         
 

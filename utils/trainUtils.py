@@ -185,10 +185,8 @@ def train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_
         optimizer.zero_grad()
         # forward
         outputs = model(input, src_len_list)
-        # print(outputs.size())
-        # print(tgt.size())
-        # print(src_len_list)
-        # print(tgt_len_list)
+        # print(outputs.argmax(2).permute(1,0))
+        # print(tgt)
 
         # compute the loss
         # tgt = pack_padded_sequence(tgt,tgt_len_list)

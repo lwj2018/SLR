@@ -71,7 +71,7 @@ def count_wer(output, tgt):
             # early stop
             o = numpy.array(early_stop(o))
             # ignore padding
-            o = o[o!=0]
+            # o = o[o!=0]
             t = t[t!=0]
             # compress
             o = compress(o)
