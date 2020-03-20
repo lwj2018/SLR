@@ -77,7 +77,7 @@ def test_isolated(model, criterion, testloader, device, epoch, log_interval, wri
 
     return top1.avg
 
-def test_vae(model, criterion, testloader, device, epoch, log_interval, writer, output_path):
+def eval_vae(model, criterion, testloader, device, epoch, log_interval, writer):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -218,3 +218,43 @@ def test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, wri
 
 
     return avg_wer.avg
+
+def test_vae(model, criterion, testloader, device, epoch, log_interval, output_path, is_csl):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    losses = AverageMeter()
+    top1 = AverageMeter()
+    top5 = AverageMeter()
+    # Set eval mode
+    model.eval()
+    # create output path
+    if not os.path.exists(output_path): os.makedirs(output_path)
+
+    end = time.time()
+    with torch.no_grad():
+        for i, data in enumerate(testloader):
+            # measure data loading time
+            data_time.update(time.time() - end)
+
+            # get the inputs and labels
+            if is_csl:
+                mat, target = data['src'], data['tgt']
+                mat = mat.view( (-1,) + mat.size()[-3:] )
+            else:
+                mat, target = data
+            mat = mat.to(device)
+            target = target.to(device)
+
+            # forward
+            outputs = model.classify(mat)
+            recons, input, mu, log_var = model(mat)
+            # save recons & input
+            if i%100==0:
+                recons_save_name = os.path.join(output_path,'recons_%06d.npy'%i)
+                recons = recons.detach().data.cpu().numpy()
+                numpy.save(recons_save_name,recons)
+                input_save_name = os.path.join(output_path,'input_%06d.npy'%i)
+                input = input.detach().data.cpu().numpy()
+                numpy.save(input_save_name,input)
+                print("%d/%d saved"%(i,len(testloader)))
+

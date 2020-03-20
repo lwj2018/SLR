@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, random_split
 import torchvision.transforms as transforms
 from models.VAE import VAE
 from utils.trainUtils import train_vae
-from utils.testUtils import test_vae
+from utils.testUtils import eval_vae
 from datasets.CSL_Isolated_Openpose import CSL_Isolated_Openpose
 from args import Arguments
 from utils.ioUtils import *
@@ -39,7 +39,8 @@ checkpoint = None
 log_interval = 100
 device_list = '1'
 num_workers = 8
-output_path = 'obj/vae_generate_CSL_Continuous'
+output_path = 'obj/vae_generate_ISL'
+is_csl = False
 
 # Get arguments
 args = Arguments()
@@ -83,7 +84,7 @@ if __name__ == '__main__':
         # Train the model
         train_vae(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer)
         # Test the model
-        prec1 = test_vae(model, criterion, testloader, device, epoch, log_interval, writer, output_path)
+        prec1 = eval_vae(model, criterion, testloader, device, epoch, log_interval, writer)
         # Save model
         # remember best prec1 and save checkpoint
         is_best = prec1>best_prec1

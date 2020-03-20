@@ -13,13 +13,14 @@ from models.VAE import VAE
 from utils.trainUtils import train_vae
 from utils.testUtils import test_vae
 from datasets.CSL_Isolated_Openpose import CSL_Isolated_Openpose
-from datasets.CSL_Continuous_Openpose import CSL_Continuous_Openpose
 from args import Arguments
 from utils.ioUtils import *
 from utils.critUtils import LabelSmoothing
 from utils.textUtils import build_dictionary, reverse_dictionary
 from torch.utils.tensorboard import SummaryWriter
-
+import warnings
+ 
+warnings.filterwarnings('ignore')
 # Path settings
 video_root = "/home/liweijie/SLR_dataset/S500_color_video"
 skeleton_root = "/home/liweijie/skeletons_dataset"
@@ -38,7 +39,9 @@ store_name = 'VAE_isolated'
 checkpoint = '/home/liweijie/projects/SLR/checkpoint/VAE_isolated_checkpoint.pth.tar'
 log_interval = 100
 device_list = '1'
-output_path = 'obj/vae_generate_CSL_Continuous'
+output_path = 'obj/vae_generate_ISL'
+is_csl = False
+num_workers = 8
 
 # Get arguments
 args = Arguments()
@@ -47,9 +50,6 @@ args = Arguments()
 os.environ["CUDA_VISIBLE_DEVICES"]=device_list
 # Device setting
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Use writer to record
-writer = SummaryWriter(os.path.join('runs/', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
 
 best_prec1 = 0.0
 start_epoch = 0
@@ -62,8 +62,8 @@ if __name__ == '__main__':
     devset = CSL_Isolated_Openpose(skeleton_root=skeleton_root,list_file=val_file,
         length=length)
     print("Dataset samples: {}".format(len(trainset)+len(devset)))
-    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
-    testloader = DataLoader(devset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True)
+    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+    testloader = DataLoader(devset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
     # Create model
     model = VAE(num_class,dropout=dropout).to(device)
     if checkpoint is not None:
@@ -80,7 +80,7 @@ if __name__ == '__main__':
     print("Test Started".center(60, '#'))
     for epoch in range(start_epoch, start_epoch+1):
         # Test the model
-        prec1 = test_vae(model, criterion, testloader, device, epoch, log_interval, writer, output_path)
+        test_vae(model, criterion, testloader, device, epoch, log_interval, output_path, is_csl)
 
     print("Test Finished".center(60, '#'))
 

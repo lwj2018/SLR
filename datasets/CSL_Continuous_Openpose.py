@@ -26,9 +26,10 @@ class CSL_Continuous_Openpose(Dataset):
     def __init__(self,skeleton_root='',list_file='',
         dictionary=None,
         clip_length=32,
-        stride=8,
+        stride=4,
         upsample_rate=2,
-        add_two_end=True):
+        add_two_end=True,
+        is_normalize=True):
         super(CSL_Continuous_Openpose,self).__init__()
         self.skeleton_root = skeleton_root
         self.clip_length = clip_length
@@ -37,6 +38,7 @@ class CSL_Continuous_Openpose(Dataset):
         self.list_file = list_file
         self.upsample_rate = upsample_rate
         self.add_two_end = add_two_end
+        self.is_normalize = is_normalize
 
         self.get_data_list()
     
@@ -57,7 +59,8 @@ class CSL_Continuous_Openpose(Dataset):
         # 第3维是置信度，不需要
         mat = mat[:,:2]
         # Normalize
-        mat = self.normalize(mat)
+        if self.is_normalize:
+            mat = self.normalize(mat)
         mat = torch.Tensor(mat)
         return mat
 
