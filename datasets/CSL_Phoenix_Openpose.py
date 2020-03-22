@@ -5,9 +5,12 @@ import torchvision.transforms as transforms
 import pandas as pd
 import spacy
 import time
-from utils.textUtils import build_dictionary, reverse_dictionary
 import json
 import numpy
+import sys
+sys.path.append('/home/liweijie/projects/SLR')
+from utils.textUtils import *
+import torch.nn.functional as F
 
 class Record:
     def __init__(self,path,sentence):
@@ -22,6 +25,7 @@ class CSL_Phoenix_Openpose(Dataset):
                 dictionary=None,
                 clip_length=32,
                 stride=4,
+                upsample_rate=2,
                 is_normalize=True):
         super(CSL_Phoenix_Openpose,self).__init__()
         self.skeleton_root = skeleton_root
@@ -31,6 +35,7 @@ class CSL_Phoenix_Openpose(Dataset):
         self.dictionary = dictionary
         self.stride = stride
         self.is_normalize = is_normalize
+        self.upsample_rate = upsample_rate
         self.prepare()
         self.get_data_list()
 
@@ -79,35 +84,44 @@ class CSL_Phoenix_Openpose(Dataset):
         mat = torch.Tensor(mat)
         return mat
 
-    def read_skeleton(self, skeleton_path, N):
-        skeleton_path = os.path.join(self.skeleton_root,skeleton_path)
 
-        skeleton_list = os.listdir(skeleton_path)
+    def read_skeletons(self, frame_path, N):
+        frame_path = os.path.join(self.skeleton_root,frame_path)
+
+        skeleton_list = os.listdir(frame_path)
         skeleton_list.sort()
+        # Ignore first frame which is blank
+        skeleton_list = skeleton_list[1:]
         skeletons = []
 
         # Tatol number of clips must be larger than N
         # so length of skeletons must be larger the (N-1)* stride + clip_length
         l = len(skeleton_list)
-        remainder_num = (l-self.clip_length)%self.stride
-        r = self.stride - remainder_num if remainder_num>0 else 0
-        clips_num = (l+r-self.clip_length)//self.stride
-        if clips_num < N: r = r + (N-clips_num)*self.stride
+        ur = self.upsample_rate
+        remainder_num = (l-self.clip_length//ur)%(self.stride//ur)
+        r = self.stride//ur - remainder_num if remainder_num>0 else 0
+        clips_num = (l+r-self.clip_length//ur)//(self.stride//ur)
+        if clips_num < N: r = r + (N-clips_num)*(self.stride//ur)
         # Read skeleton data
         for i in range(l):
-            skeleton = self.read_json(os.path.join(skeleton_path, skeleton_list[i]))
+            skeleton = self.read_json(os.path.join(frame_path, skeleton_list[i]))
             skeletons.append(skeleton)
         # Padding
         for i in range(r):
             skeletons.append(skeletons[-1])
-        # After stack, shape is L x J x D, where L is divisible by clip length
-        skeletons = torch.stack(skeletons, dim=0)
-        # Resample the skeleton sequence with sliding window
+        # After stack, shape is L x J x D, where L is perfectly suit for framing
+        data = torch.stack(skeletons, dim=0)
+        # Upsample
+        L,J,D = data.size()
+        data = data.unsqueeze(0).permute(0,3,1,2)
+        data = F.upsample(data,size=(self.upsample_rate*L,J),mode='bilinear').contiguous()
+        data = data.permute(0,2,3,1).squeeze(0)
+        # Resample the skeleton sequence with framing
         samples = []
-        for i in range(0,l+r-self.clip_length+1,self.stride):
-            sample = skeletons[i:i+self.clip_length]
+        for i in range(0,(l+r)*ur-self.clip_length+1,self.stride):
+            sample = data[i:i+self.clip_length]
             samples.append(sample)
-        data = torch.stack(samples, dim=0)
+        data = torch.cat(samples, dim=0)
         # After view, shape of data is S x clip_length x J x D, where S is sequence length
         data = data.view( (-1,self.clip_length) + data.size()[-2:] )
         return data
@@ -117,7 +131,7 @@ class CSL_Phoenix_Openpose(Dataset):
         skeleton_path = record.skeleton_path
         sentence = record.sentence
         N = len(sentence)
-        skeletons = self.read_skeleton(skeleton_path,N)
+        skeletons = self.read_skeletons(skeleton_path,N)
         sentence = torch.LongTensor(sentence)
 
         return {'input':skeletons, 'tgt':sentence}
@@ -146,6 +160,16 @@ def min(array):
             min = x
     return min
 
-        
+# Test
+if __name__ == '__main__':
+    # Path settings
+    train_skeleton_root = "/mnt/data/haodong/openpose_output/train"
+    train_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-signerindependent-SI5/annotations/manual/train.SI5.corpus.csv"
+    dev_skeleton_root = "/mnt/data/haodong/openpose_output/dev"
+    dev_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-signerindependent-SI5/annotations/manual/dev.SI5.corpus.csv"
+    # Build dictionary
+    dictionary = build_dictionary([train_annotation_file,dev_annotation_file])
+    dataset = CSL_Phoenix_Openpose(skeleton_root=train_skeleton_root,annotation_file=train_annotation_file,dictionary=dictionary)
+    print(dataset[3000]['input'].size())
 
 

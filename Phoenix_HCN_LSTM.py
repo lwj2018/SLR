@@ -29,20 +29,22 @@ train_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2
 dev_skeleton_root = "/mnt/data/haodong/openpose_output/dev"
 dev_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-signerindependent-SI5/annotations/manual/dev.SI5.corpus.csv"
 # Hyper params
-learning_rate = 1e-6
-batch_size = 2
+learning_rate = 1e-5
+batch_size = 4
 epochs = 1000
 hidden_dim = 512
 num_classes = 500
 clip_length = 32
 smoothing = 0.1
 stride = 4
+clip_g = 1
 # Options
 store_name = 'Phoenix_HCN_LSTM'
-checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200318_HCN_LSTM_best.pth.tar'
 hcn_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
+hcn_lstm_ckpt = '/home/liweijie/projects/SLR/checkpoint/20200318_HCN_LSTM_best.pth.tar'
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200322_b4_Phoenix_HCN_LSTM_checkpoint.pth.tar'
 log_interval = 100
-device_list = '2'
+device_list = '3'
 num_workers = 8
 
 # get arguments
@@ -59,7 +61,7 @@ writer = SummaryWriter(os.path.join('runs/phoenix_hcn_lstm', time.strftime('%Y-%
 best_wer = 999.00
 start_epoch = 0
 
-# Train with Transformer
+# Train with CTC loss
 if __name__ == '__main__':
     # Build dictionary
     dictionary = build_dictionary([train_annotation_file,dev_annotation_file])
@@ -80,14 +82,17 @@ if __name__ == '__main__':
     model = hcn_lstm(vocab_size,clip_length=clip_length,
                 num_classes=num_classes,hidden_dim=hidden_dim).to(device)
     model = resume_hcn_module(model, hcn_checkpoint)
+    if hcn_lstm_ckpt is not None:
+        model = resume_hcn_lstm(model,hcn_lstm_ckpt)
     if checkpoint is not None:
-        model = resume_hcn_lstm(model,checkpoint)
+        start_epoch, best_wer = resume_model(model, checkpoint)
     # Run the model parallelly
     if torch.cuda.device_count() > 1:
         print("Using {} GPUs".format(torch.cuda.device_count()))
         model = nn.DataParallel(model)
     # Create loss criterion & optimizer
-    criterion = nn.CTCLoss(zero_infinity=True)
+    # criterion = nn.CTCLoss(zero_infinity=True)
+    criterion = nn.CTCLoss() 
     # criterion = LabelSmoothing(vocab_size,0,smoothing=smoothing)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -96,7 +101,7 @@ if __name__ == '__main__':
     print("Training Started".center(60, '#'))
     for epoch in range(start_epoch, epochs):
         # Train the model
-        train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict)
+        train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict, clip_g)
         # Test the model
         wer = test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict)
         # Save model

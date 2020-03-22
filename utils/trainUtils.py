@@ -4,6 +4,19 @@ import time
 from utils.metricUtils import *
 from utils.textUtils import itos
 from torch.nn.utils.rnn import pack_padded_sequence
+from torch.nn.utils import clip_grad_norm
+
+def clip_gradient(optimizer, grad_clip):
+    """
+    Clips gradients computed during backpropagation to avoid explosion of gradients.
+
+    :param optimizer: optimizer with the gradients to be clipped
+    :param grad_clip: clip value
+    """
+    for group in optimizer.param_groups:
+        for param in group["params"]:
+            if param.grad is not None:
+                param.grad.data.clamp_(-grad_clip, grad_clip)
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -163,7 +176,7 @@ def train_vae(model, criterion, optimizer, trainloader, device, epoch, log_inter
             top1.reset()
             top5.reset()
 
-def train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict):
+def train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict, clip_g):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -194,6 +207,7 @@ def train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_
 
         # backward & optimize
         loss.backward()
+
         optimizer.step()
 
         # compute the metrics

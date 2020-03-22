@@ -38,7 +38,7 @@ smoothing = 0.1
 stride = 4
 # Options
 store_name = 'HCN_LSTM'
-checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200318_HCN_LSTM_best.pth.tar'
+checkpoint = None#'/home/liweijie/projects/SLR/checkpoint/20200318_HCN_LSTM_best.pth.tar'
 hcn_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
 log_interval = 100
 device_list = '2'
@@ -53,12 +53,12 @@ os.environ["CUDA_VISIBLE_DEVICES"]=device_list
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Use writer to record
-writer = SummaryWriter(os.path.join('runs/', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
+writer = SummaryWriter(os.path.join('runs/csl_hcn_lstm', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
 
 best_wer = 999.00
 start_epoch = 0
 
-# Train with Transformer
+# Train with CTC loss
 if __name__ == '__main__':
     # Build dictionary
     dictionary = build_csl_dictionary()
@@ -78,7 +78,8 @@ if __name__ == '__main__':
     # Create model
     model = hcn_lstm(vocab_size,clip_length=clip_length,
                 num_classes=num_classes,hidden_dim=hidden_dim).to(device)
-    model = resume_hcn_module(model, hcn_checkpoint)
+    if hcn_checkpoint is not None:
+        model = resume_hcn_module(model, hcn_checkpoint)
     if checkpoint is not None:
         start_epoch, best_wer = resume_model(model,checkpoint)
     # Run the model parallelly
@@ -95,7 +96,7 @@ if __name__ == '__main__':
     print("Training Started".center(60, '#'))
     for epoch in range(start_epoch, epochs):
         # Train the model
-        train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict)
+        train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict, clip_g)
         # Test the model
         wer = test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict)
         # Save model
