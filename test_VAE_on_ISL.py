@@ -58,9 +58,9 @@ start_epoch = 0
 if __name__ == '__main__':
     # Load data
     trainset = CSL_Isolated_Openpose(skeleton_root=skeleton_root,list_file=train_file,
-        length=length)
+        length=length,is_normalize=False)
     devset = CSL_Isolated_Openpose(skeleton_root=skeleton_root,list_file=val_file,
-        length=length)
+        length=length,is_normalize=False)
     print("Dataset samples: {}".format(len(trainset)+len(devset)))
     trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
     testloader = DataLoader(devset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)

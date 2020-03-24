@@ -38,12 +38,13 @@ smoothing = 0.1
 stride = 4
 # Options
 store_name = 'VAE_LSTM'
-checkpoint = None
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/VAE_LSTM_checkpoint.pth.tar'
 hcn_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
 vae_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200320_VAE_isolated_best.pth.tar"
 log_interval = 100
 device_list = '1'
 num_workers = 8
+clip_g = 0
 
 # get arguments
 args = Arguments()
@@ -97,7 +98,7 @@ if __name__ == '__main__':
     print("Training Started".center(60, '#'))
     for epoch in range(start_epoch, epochs):
         # Train the model
-        train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict)
+        train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer, reverse_dict, clip_g)
         # Test the model
         wer = test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict)
         # Save model

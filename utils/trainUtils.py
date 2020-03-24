@@ -142,7 +142,7 @@ def train_vae(model, criterion, optimizer, trainloader, device, epoch, log_inter
         end = time.time()
 
         # update average value
-        losses_c.update(loss_c.item())
+        # losses_c.update(loss_c.item())
         losses_r.update(loss_r.item())
         top1.update(prec1.item())
         top5.update(prec5.item())

@@ -29,7 +29,7 @@ train_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2
 dev_skeleton_root = "/mnt/data/haodong/openpose_output/dev"
 dev_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-signerindependent-SI5/annotations/manual/dev.SI5.corpus.csv"
 # Hyper params
-learning_rate = 1e-5
+learning_rate = 1e-6
 batch_size = 4
 epochs = 1000
 hidden_dim = 512
@@ -42,7 +42,7 @@ clip_g = 1
 store_name = 'Phoenix_HCN_LSTM'
 hcn_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
 hcn_lstm_ckpt = '/home/liweijie/projects/SLR/checkpoint/20200318_HCN_LSTM_best.pth.tar'
-checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200322_b4_Phoenix_HCN_LSTM_checkpoint.pth.tar'
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/Phoenix_HCN_LSTM_checkpoint.pth.tar'
 log_interval = 100
 device_list = '3'
 num_workers = 8
