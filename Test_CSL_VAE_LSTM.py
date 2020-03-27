@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 import torchvision.transforms as transforms
-from models.HCN_LSTM import hcn_lstm
+from models.VAE_LSTM import vae_lstm
 from utils.trainUtils import train_hcn_lstm
 from utils.testUtils import test_hcn_lstm
 from datasets.CSL_Continuous_Openpose import CSL_Continuous_Openpose
@@ -29,7 +29,7 @@ train_list = "/home/liweijie/Data/public_dataset/train_list.txt"
 val_list = "/home/liweijie/Data/public_dataset/val_list.txt"
 # Hyper params
 learning_rate = 1e-5
-batch_size = 2
+batch_size = 1
 epochs = 1000
 hidden_dim = 512
 num_classes = 500
@@ -37,8 +37,7 @@ clip_length = 32
 smoothing = 0.1
 stride = 4
 # Options
-store_name = 'HCN_LSTM'
-checkpoint = '/home/liweijie/projects/SLR/checkpoint/HCN_LSTM_checkpoint.pth.tar'
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200327_VAE_LSTM_best.pth.tar'
 log_interval = 100
 device_list = '1'
 num_workers = 0
@@ -52,7 +51,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]=device_list
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Use writer to record
-writer = SummaryWriter(os.path.join('runs/', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
+writer = SummaryWriter(os.path.join('runs/csl_vae_lstm', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
 
 best_wer = 999.00
 start_epoch = 0
@@ -75,7 +74,7 @@ if __name__ == '__main__':
     testloader = DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True,
             collate_fn=skeleton_collate)
     # Create model
-    model = hcn_lstm(vocab_size,clip_length=clip_length,
+    model = vae_lstm(vocab_size,clip_length=clip_length,
                 num_classes=num_classes,hidden_dim=hidden_dim).to(device)
     if checkpoint is not None:
         start_epoch, best_wer = resume_model(model,checkpoint)
@@ -90,7 +89,7 @@ if __name__ == '__main__':
     print("Evaluation Started".center(60, '#'))
     for epoch in range(start_epoch, start_epoch+1):
         # Test the model
-        wer = test_hcn_lstm(model, criterion, trainloader, device, epoch, log_interval, writer, reverse_dict)
+        wer = test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict)
 
     print("Evaluation Finished".center(60, '#'))
 

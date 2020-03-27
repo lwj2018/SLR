@@ -21,7 +21,7 @@ class hcn_lstm(nn.Module):
                  hidden_dim = 512):
         super(hcn_lstm,self).__init__()
         # build the feature extractor
-        self.featureExtractor = HCN.hcn(num_classes,length=clip_length)
+        self.featureExtractor = HCN.hcn(num_classes,length=clip_length,dropout=dropout)
         self.clip_length = clip_length
 
         self.lstm = nn.LSTM(input_size=num_classes,hidden_size=hidden_dim,num_layers=3,bidirectional=True)
