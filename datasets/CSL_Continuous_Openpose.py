@@ -66,6 +66,7 @@ class CSL_Continuous_Openpose(Dataset):
 
     def read_skeletons(self, frame_path, N):
         frame_path = os.path.join(self.skeleton_root,frame_path)
+        print(frame_path)
 
         skeleton_list = os.listdir(frame_path)
         skeleton_list.sort()

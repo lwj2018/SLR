@@ -173,7 +173,7 @@ def eval_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, wri
             avg_wer.update(wer,N)
             avg_bleu.update(bleu,N)
 
-            if i % log_interval == log_interval-1:
+            if i==0 or i % log_interval == log_interval-1:
                 # Warning! when N = 1, have to unsqueeze
                 # Qualitative evaluation of translation result
                 # outputs = outputs.unsqueeze(1).permute(1,0,2).max(2)[1]
@@ -189,6 +189,14 @@ def eval_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, wri
                 writer.add_text('tgt',
                                 str(tgt),
                                 epoch * len(testloader) + i)
+                info = ('[Dev] Epoch: [{0}][{1}/{2}]\t'
+                        'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t'
+                        'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t'
+                        'Wer {wer.avg:.3f}% Bleu {bleu.avg:.3f}%'
+                        .format(
+                            epoch, i, len(testloader), batch_time=batch_time,
+                            data_time=data_time, wer=avg_wer, bleu=avg_bleu))
+                print(info)
 
         info = ('[Dev] Epoch: [{0}][len: {1}]\t'
                 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -232,8 +240,6 @@ def test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, wri
 
             # forward
             outputs = model(input, src_len_list)
-            # print(outputs.argmax(2).permute(1,0))
-            # print(tgt)
 
             # compute the loss
             loss = criterion(outputs,tgt,src_len_list,tgt_len_list)
@@ -252,7 +258,7 @@ def test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, wri
             avg_wer.update(wer,N)
             avg_bleu.update(bleu,N)
 
-            if i % log_interval == log_interval-1:
+            if i==0 or i % log_interval == log_interval-1:
                 # Warning! when N = 1, have to unsqueeze
                 # Qualitative evaluation of translation result
                 # outputs = outputs.unsqueeze(1).permute(1,0,2).max(2)[1]
@@ -268,6 +274,14 @@ def test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, wri
                 writer.add_text('tgt',
                                 str(tgt),
                                 epoch * len(testloader) + i)
+                info = ('[Test] Epoch: [{0}][{1}/{2}]\t'
+                        'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t'
+                        'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t'
+                        'Wer {wer.avg:.3f} Bleu {bleu.avg:.3f}'
+                        .format(
+                            epoch, i, len(testloader), batch_time=batch_time,
+                            data_time=data_time, wer=avg_wer, bleu=avg_bleu))
+                print(info)
 
         info = ('[Test] Epoch: [{0}][len: {1}]\t'
                 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -317,6 +331,41 @@ def test_vae(model, criterion, testloader, device, epoch, log_interval, output_p
             # forward
             outputs = model.classify(mat)
             recons, input, mu, log_var = model(mat)
+            # save recons & input
+            if i%100==0:
+                recons_save_name = os.path.join(output_path,'recons_%06d.npy'%i)
+                recons = recons.detach().data.cpu().numpy()
+                numpy.save(recons_save_name,recons)
+                input_save_name = os.path.join(output_path,'input_%06d.npy'%i)
+                input = input.detach().data.cpu().numpy()
+                numpy.save(input_save_name,input)
+                print("%d/%d saved"%(i,len(testloader)))
+
+def vae_lstm_recons(model, testloader, device, log_interval, output_path):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    losses = AverageMeter()
+    top1 = AverageMeter()
+    top5 = AverageMeter()
+    # Set eval mode
+    model.eval()
+    # create output path
+    if not os.path.exists(output_path): os.makedirs(output_path)
+
+    end = time.time()
+    with torch.no_grad():
+        for i, data in enumerate(testloader):
+            # measure data loading time
+            data_time.update(time.time() - end)
+
+            # get the inputs and labels
+            mat, target = data['src'], data['tgt']
+            mat = mat.to(device)
+            target = target.to(device)
+
+            # forward
+            recons = model.generate(mat)
+            input = mat.view( (-1,) + mat.size()[-3:] )
             # save recons & input
             if i%100==0:
                 recons_save_name = os.path.join(output_path,'recons_%06d.npy'%i)

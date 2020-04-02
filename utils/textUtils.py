@@ -69,12 +69,12 @@ def compress(input):
 def itos_clip(idx_list, reverse_dict):
     sentence = []
     for idx in idx_list:
-        # # ignore pad
-        # if idx!=0:
-        word = reverse_dict[idx]
-        sentence.append(word)
-        if word=='<eos>':
-            break
+        # ignore pad
+        if idx!=0:
+            word = reverse_dict[idx]
+            sentence.append(word)
+            if word=='<eos>':
+                break
     return sentence
 
 def convert_chinese_to_indices(sentence, dictionary, add_two_end):

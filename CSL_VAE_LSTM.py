@@ -55,7 +55,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]=device_list
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Use writer to record
-writer = SummaryWriter(os.path.join('runs/vae_lstm', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
+writer = SummaryWriter(os.path.join('runs/csl_vae_lstm', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
 
 best_wer = 999.00
 start_epoch = 0

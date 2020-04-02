@@ -59,6 +59,13 @@ class vae_lstm(nn.Module):
         out = F.log_softmax(out,2)
         return out
 
+    def generate(self, input):
+        N = input.size(0)
+        input = input.view( (-1,) + input.size()[-3:] )
+        # resume skeleton
+        recons = self.vae(input)[0]
+        return recons
+
     # def train(self, mode=True):
     #     """
     #     Override the default train() to freeze the VAE parameters

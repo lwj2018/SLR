@@ -29,7 +29,7 @@ train_list = "/home/liweijie/Data/public_dataset/train_list.txt"
 val_list = "/home/liweijie/Data/public_dataset/val_list.txt"
 # Hyper params
 learning_rate = 1e-5
-batch_size = 2
+batch_size = 1
 epochs = 1000
 hidden_dim = 512
 num_classes = 500
@@ -38,7 +38,7 @@ smoothing = 0.1
 stride = 4
 # Options
 store_name = 'HCN_LSTM'
-checkpoint = '/home/liweijie/projects/SLR/checkpoint/HCN_LSTM_checkpoint.pth.tar'
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200318_HCN_LSTM_best.pth.tar'
 log_interval = 100
 device_list = '1'
 num_workers = 0
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     print("Evaluation Started".center(60, '#'))
     for epoch in range(start_epoch, start_epoch+1):
         # Test the model
-        wer = test_hcn_lstm(model, criterion, trainloader, device, epoch, log_interval, writer, reverse_dict)
+        wer = test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict)
 
     print("Evaluation Finished".center(60, '#'))
 

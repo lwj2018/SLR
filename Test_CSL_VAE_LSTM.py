@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, random_split
 import torchvision.transforms as transforms
 from models.VAE_LSTM import vae_lstm
 from utils.trainUtils import train_hcn_lstm
-from utils.testUtils import test_hcn_lstm
+from utils.testUtils import test_hcn_lstm, vae_lstm_recons
 from datasets.CSL_Continuous_Openpose import CSL_Continuous_Openpose
 from args import Arguments
 from utils.ioUtils import *
@@ -29,7 +29,7 @@ train_list = "/home/liweijie/Data/public_dataset/train_list.txt"
 val_list = "/home/liweijie/Data/public_dataset/val_list.txt"
 # Hyper params
 learning_rate = 1e-5
-batch_size = 1
+batch_size = 2
 epochs = 1000
 hidden_dim = 512
 num_classes = 500
@@ -39,8 +39,9 @@ stride = 4
 # Options
 checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200327_VAE_LSTM_best.pth.tar'
 log_interval = 100
-device_list = '1'
+device_list = '0'
 num_workers = 0
+output_path = 'obj/vae_lstm_CSL_val'
 
 # get arguments
 args = Arguments()
@@ -51,7 +52,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]=device_list
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Use writer to record
-writer = SummaryWriter(os.path.join('runs/csl_vae_lstm', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
+writer = SummaryWriter(os.path.join('runs/test_csl_vae_lstm', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
 
 best_wer = 999.00
 start_epoch = 0
@@ -65,9 +66,9 @@ if __name__ == '__main__':
     print("The size of vocabulary is %d"%vocab_size)
     # Load data
     trainset = CSL_Continuous_Openpose(skeleton_root=skeleton_root,list_file=train_list,dictionary=dictionary,
-            clip_length=clip_length,stride=stride,add_two_end=False)
+            clip_length=clip_length,stride=stride,add_two_end=False,is_normalize=False)
     valset = CSL_Continuous_Openpose(skeleton_root=skeleton_root,list_file=val_list,dictionary=dictionary,
-            clip_length=clip_length,stride=stride,add_two_end=False)
+            clip_length=clip_length,stride=stride,add_two_end=False,is_normalize=False)
     print("Dataset samples: {}".format(len(trainset)+len(valset)))
     trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True,
             collate_fn=skeleton_collate)
@@ -90,7 +91,8 @@ if __name__ == '__main__':
     for epoch in range(start_epoch, start_epoch+1):
         # Test the model
         wer = test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict)
-
+        # Save the reconstruction results
+        # vae_lstm_recons(model, testloader, device, log_interval, output_path)
     print("Evaluation Finished".center(60, '#'))
 
 

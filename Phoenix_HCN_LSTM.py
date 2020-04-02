@@ -31,7 +31,7 @@ dev_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-201
 test_skeleton_root = "/home/haodong/Data/multisigner/test"
 test_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-2014-multisigner/annotations/manual/test.corpus.csv"
 # Hyper params
-learning_rate = 1e-6
+learning_rate = 1e-5
 batch_size = 4
 epochs = 1000
 hidden_dim = 512
@@ -44,7 +44,7 @@ clip_g = 1
 store_name = 'Phoenix_HCN_LSTM'
 hcn_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
 hcn_lstm_ckpt = '/home/liweijie/projects/SLR/checkpoint/20200318_HCN_LSTM_best.pth.tar'
-checkpoint = None
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/Phoenix_HCN_LSTM_checkpoint.pth.tar'
 log_interval = 100
 device_list = '1'
 num_workers = 8
