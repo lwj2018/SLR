@@ -52,8 +52,13 @@ class CSL_Phoenix_Openpose(Dataset):
         sentence = [tok.text for tok in self.lang_model.tokenizer(sentence) 
             if not tok.text in self.punctuation]
         sentence = sentence + ['<eos>']
-        indices = [self.dictionary[word] for word in sentence 
-            if word in self.dictionary.keys()]
+        indices = []
+        for word in sentence:
+            if word in self.dictionary.keys():
+                indices.append(self.dictionary[word])
+            else:
+                # the index of <unk> is 3
+                indices.append(3)
         return indices
     
     def get_data_list(self):

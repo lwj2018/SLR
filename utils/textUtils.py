@@ -4,17 +4,16 @@ from collections import Counter
 import time
 import jieba
 
-def build_dictionary(files):
+def build_dictionary(file):
     start = time.time()
-    lang_model = spacy.load('de')
+    lang_model = spacy.load('de_core_news_sm')
     end = time.time()
     print('load lang_model cost %.3f s'%(end-start))
     train = []
     # 合并annotation中的语料
-    for file in files:
-        df = pd.read_csv(file,sep='|')
-        for i in range(len(df)):
-            train.append(df.loc[i]['annotation'])
+    df = pd.read_csv(file,sep='|')
+    for i in range(len(df)):
+        train.append(df.loc[i]['annotation'])
 
     # Create a dictionary which maps tokens to indices (train contains all the training sentences)
     freq_list = Counter()
@@ -29,8 +28,14 @@ def build_dictionary(files):
     dictionary['<pad>'] = 0
     dictionary['<bos>'] = 1
     dictionary['<eos>'] = 2
+    dictionary['<unk>'] = 3
+    count = 0
     for i,item in enumerate(freq_list):
-        dictionary[item[0]] = i+3
+        if item[1] > 2:
+            dictionary[item[0]] = count+4
+            count += 1
+        else:
+            dictionary[item[0]] = 3
     print("Build dictionary successfully!")
     return dictionary
 
@@ -38,6 +43,16 @@ def reverse_dictionary(dictionary):
     reverse_dict = {}
     for k,v in dictionary.items():
         reverse_dict[v] = k
+    return reverse_dict
+
+def reverse_phoenix_dictionary(dictionary):
+    reverse_dict = {}
+    for k,v in dictionary.items():
+        # <unk> is a special case
+        if v!= 3:
+            reverse_dict[v] = k
+        else:
+            reverse_dict[v] = '<unk>'
     return reverse_dict
 
 def itos(idx_list, reverse_dict):

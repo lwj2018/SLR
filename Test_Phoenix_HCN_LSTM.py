@@ -63,8 +63,8 @@ start_epoch = 0
 # Train with CTC loss
 if __name__ == '__main__':
     # Build dictionary
-    dictionary = build_dictionary([train_annotation_file,dev_annotation_file,test_annotation_file])
-    reverse_dict = reverse_dictionary(dictionary)
+    dictionary = build_isl_dictionary[train_annotation_file)
+    reverse_dict = reverse_phoenix_dictionary(dictionary)
     vocab_size = len(dictionary)
     print("The size of vocabulary is %d"%vocab_size)
     # Load data
