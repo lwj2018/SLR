@@ -6,7 +6,7 @@ import jieba
 
 def build_dictionary(file):
     start = time.time()
-    lang_model = spacy.load('de_core_news_sm')
+    lang_model = spacy.load('de')
     end = time.time()
     print('load lang_model cost %.3f s'%(end-start))
     train = []

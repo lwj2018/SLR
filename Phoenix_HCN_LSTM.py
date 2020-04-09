@@ -43,10 +43,11 @@ clip_g = 1
 # Options
 store_name = 'Phoenix_HCN_LSTM'
 hcn_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
-hcn_lstm_ckpt = '/home/liweijie/projects/SLR/checkpoint/20200318_HCN_LSTM_best.pth.tar'
-checkpoint = '/home/liweijie/projects/SLR/checkpoint/Phoenix_HCN_LSTM_checkpoint.pth.tar'
+# hcn_lstm_ckpt = '/home/liweijie/projects/SLR/checkpoint/20200318_HCN_LSTM_best.pth.tar'
+hcn_lstm_ckpt = '/home/liweijie/projects/SLR/checkpoint/20200401_Phoenix_HCN_LSTM_best.pth.tar'
+checkpoint = None#'/home/liweijie/projects/SLR/checkpoint/Phoenix_HCN_LSTM_checkpoint.pth.tar'
 log_interval = 100
-device_list = '1'
+device_list = '3'
 num_workers = 8
 
 # get arguments
@@ -68,7 +69,7 @@ if __name__ == '__main__':
     # Build dictionary
     dictionary = build_dictionary(train_annotation_file)
     reverse_dict = reverse_phoenix_dictionary(dictionary)
-    vocab_size = len(dictionary)
+    vocab_size = len(reverse_dict)
     print("The size of vocabulary is %d"%vocab_size)
     # Load data
     trainset = CSL_Phoenix_Openpose(skeleton_root=train_skeleton_root,annotation_file=train_annotation_file,dictionary=dictionary,

@@ -11,11 +11,6 @@ import os.path as osp
 import time
 import matplotlib.pyplot as plt
 
-# Params
-width = 1280
-height = 720
-face_cut_size = 100
-hand_cut_size = 150
 
 class VideoRecord(object):
     def __init__(self,row):
@@ -40,10 +35,6 @@ class CSL_Isolated_Openpose(data.Dataset):
         self.skeleton_root = skeleton_root
         self.list_file = list_file
         self.length = length
-        self.width = width
-        self.height = height
-        self.face_cut_size = face_cut_size
-        self.hand_cut_size = hand_cut_size
         self.is_normalize = is_normalize
         
         self._parse_list()
