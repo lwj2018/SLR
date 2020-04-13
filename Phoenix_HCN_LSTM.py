@@ -33,7 +33,7 @@ test_annotation_file = "/mnt/data/public/datasets/phoenix2014-release/phoenix-20
 # Hyper params
 learning_rate = 1e-5
 batch_size = 4
-epochs = 1000
+epochs = 1500
 hidden_dim = 512
 num_classes = 500
 clip_length = 32
@@ -45,7 +45,7 @@ store_name = 'Phoenix_HCN_LSTM'
 hcn_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
 # hcn_lstm_ckpt = '/home/liweijie/projects/SLR/checkpoint/20200318_HCN_LSTM_best.pth.tar'
 hcn_lstm_ckpt = '/home/liweijie/projects/SLR/checkpoint/20200401_Phoenix_HCN_LSTM_best.pth.tar'
-checkpoint = None#'/home/liweijie/projects/SLR/checkpoint/Phoenix_HCN_LSTM_checkpoint.pth.tar'
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200413_Phoenix_HCN_LSTM_best.pth.tar'
 log_interval = 100
 device_list = '3'
 num_workers = 8
@@ -87,7 +87,7 @@ if __name__ == '__main__':
             collate_fn=skeleton_collate)
     # Create model
     model = hcn_lstm(vocab_size,clip_length=clip_length,
-                num_classes=num_classes,hidden_dim=hidden_dim,dropout=0.4).to(device)
+                num_classes=num_classes,hidden_dim=hidden_dim,dropout=0.6).to(device)# default dropout is 0.4
     model = resume_hcn_module(model, hcn_checkpoint)
     if hcn_lstm_ckpt is not None:
         model = resume_hcn_lstm(model,hcn_lstm_ckpt)
