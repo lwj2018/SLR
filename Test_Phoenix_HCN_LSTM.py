@@ -41,7 +41,7 @@ smoothing = 0.1
 stride = 4
 clip_g = 1
 # Options
-checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200401_Phoenix_HCN_LSTM_checkpoint.pth.tar'
+checkpoint = '/home/liweijie/projects/SLR/checkpoint/20200413_Phoenix_HCN_LSTM_best.pth.tar'
 log_interval = 5
 device_list = '1'
 num_workers = 8
@@ -63,9 +63,9 @@ start_epoch = 0
 # Train with CTC loss
 if __name__ == '__main__':
     # Build dictionary
-    dictionary = build_isl_dictionary[train_annotation_file)
+    dictionary = build_dictionary(train_annotation_file)
     reverse_dict = reverse_phoenix_dictionary(dictionary)
-    vocab_size = len(dictionary)
+    vocab_size = len(reverse_dict)
     print("The size of vocabulary is %d"%vocab_size)
     # Load data
     trainset = CSL_Phoenix_Openpose(skeleton_root=train_skeleton_root,annotation_file=train_annotation_file,dictionary=dictionary,
@@ -83,7 +83,7 @@ if __name__ == '__main__':
             collate_fn=skeleton_collate)
     # Create model
     model = hcn_lstm(vocab_size,clip_length=clip_length,
-                num_classes=num_classes,hidden_dim=hidden_dim).to(device)
+                num_classes=num_classes,hidden_dim=hidden_dim,dropout=0.6).to(device)
     start_epoch, best_wer = resume_model(model, checkpoint)
     # Run the model parallelly
     if torch.cuda.device_count() > 1:

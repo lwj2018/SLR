@@ -230,9 +230,11 @@ def train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_
                     'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                     'Wer {wer.val:.5f} ({wer.avg:.5f})\t'
+                    'Bleu {bleu.val:.5f} ({bleu.avg:.5f})\t'
                     .format(
                         epoch, i, len(trainloader), batch_time=batch_time,
                         data_time=data_time, loss=losses,  wer=avg_wer,
+                        bleu = avg_bleu,
                         lr=optimizer.param_groups[-1]['lr']))
             print(info)
             writer.add_scalar('train loss',

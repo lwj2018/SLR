@@ -123,3 +123,4 @@ scripts/test.ipynb
 *vae_generate*
 *csl/P42*
 *.DS*
+*.npy
