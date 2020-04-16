@@ -18,25 +18,31 @@ class hcn(nn.Module):
             nn.Conv2d(in_channel,64,1,1,padding=0),
             nn.ReLU()
             )
+        self.bn1 = nn.BatchNorm2d(64)
         self.conv2 = nn.Conv2d(64,32,(3,1),1,padding=(1,0))
+        self.bn2 = nn.BatchNorm2d(32)
         self.hconv = HierarchyConv()
         self.conv4 = nn.Sequential(
             nn.Conv2d(32,64,3,1,padding=1),
             nn.Dropout2d(p=dropout),
             nn.MaxPool2d(2)
         )
+        self.bn4 = nn.BatchNorm2d(64)
 
         self.convm1 = nn.Sequential(
             nn.Conv2d(in_channel,64,1,1,padding=0),
             nn.ReLU()
             )
+        self.bnm1 = nn.BatchNorm2d(64)
         self.convm2 = nn.Conv2d(64,32,(3,1),1,padding=(1,0))
+        self.bnm2 = nn.BatchNorm2d(32)
         self.hconvm = HierarchyConv()
         self.convm4 = nn.Sequential(
             nn.Conv2d(32,64,3,1,padding=1),
             nn.Dropout2d(p=dropout),
             nn.MaxPool2d(2)
         )
+        self.bnm4 = nn.BatchNorm2d(64)
                 
         self.conv5 = nn.Sequential(
             nn.Conv2d(128,128,3,1,padding=1),
@@ -44,12 +50,14 @@ class hcn(nn.Module):
             nn.Dropout2d(p=dropout),
             nn.MaxPool2d(2)
         )
+        self.bn5 = nn.BatchNorm2d(128)
         self.conv6 = nn.Sequential(
             nn.Conv2d(128,256,3,1,padding=1),
             nn.ReLU(),
             nn.Dropout2d(p=dropout),
             nn.MaxPool2d(2)
         )
+        self.bn6 = nn.BatchNorm2d(256)
 
         # scale related to total number of maxpool layer
         scale = 16
@@ -73,26 +81,34 @@ class hcn(nn.Module):
         motion = F.upsample(motion,size=(T,J),mode='bilinear').contiguous()
 
         out = self.conv1(input)
+        out = self.bn1(out)
         out = self.conv2(out)
+        out = self.bn2(out)
         out = out.permute(0,3,2,1).contiguous()
         # out: N J T D
         
         # out = self.conv3(out)
         out = self.hconv(out)
         out = self.conv4(out)
+        out = self.bn4(out)
 
         outm = self.convm1(motion)
+        outm = self.bnm1(outm)
         outm = self.convm2(outm)
+        outm = self.bnm2(outm)
         outm = outm.permute(0,3,2,1).contiguous()
         # outm: N J T D
 
         # outm = self.convm3(outm)
         outm = self.hconvm(outm)
         outm = self.convm4(outm)
+        outm = self.bnm4(outm)
 
         out = torch.cat((out,outm),dim=1)
         out = self.conv5(out)
+        out = self.bn5(out)
         out = self.conv6(out)
+        out = self.bn6(out)
         # out:  N J T(T/16) D
         return out
 
@@ -122,6 +138,7 @@ class HierarchyConv(nn.Module):
             nn.Conv2d(self.parts*32,32,3,1,padding=1),
             nn.MaxPool2d(2)
         )
+        self.bn = nn.BatchNorm2d(32)
 
     def forward(self,input):
         left_arm = input[:,[3,4],:,:]
@@ -145,4 +162,5 @@ class HierarchyConv(nn.Module):
         f = self.convf(face)
         out = torch.cat([l,r,f],1)
         out = self.conv(out)
+        out = self.bn(out)
         return out

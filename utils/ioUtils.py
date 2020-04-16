@@ -95,3 +95,18 @@ def resume_hcn_lstm(model, checkpoint):
     "Epoch: {}\n"
     "Best: {:.3f}%".format(checkpoint,epoch,best))
     return model
+
+def resume_main_part(model, checkpoint):
+    model_dict = model.state_dict()
+    params_dict = torch.load(checkpoint)
+    state_dict = params_dict['state_dict']
+    # Resume model don't have the bn layer
+    model_dict.update(state_dict)
+    model.load_state_dict(model_dict)
+
+    epoch = params_dict['epoch']
+    best = params_dict['best']
+    print("Load main part from {}: \n"
+    "Epoch: {}\n"
+    "Best: {:.3f}%".format(checkpoint,epoch,best))
+    return model

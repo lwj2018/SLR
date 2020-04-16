@@ -45,7 +45,8 @@ store_name = 'Phoenix_HCN_LSTM'
 hcn_checkpoint = "/home/liweijie/projects/SLR/checkpoint/20200315_82.106_HCN_isolated_best.pth.tar"
 # hcn_lstm_ckpt = '/home/liweijie/projects/SLR/checkpoint/20200318_HCN_LSTM_best.pth.tar'
 hcn_lstm_ckpt = '/home/liweijie/projects/SLR/checkpoint/20200401_Phoenix_HCN_LSTM_best.pth.tar'
-checkpoint = '/home/liweijie/projects/SLR/checkpoint/202004132_Phoenix_HCN_LSTM_checkpoint.pth.tar'
+mainpart_ckpt = '/home/liweijie/projects/SLR/checkpoint/20200416_Phoenix_HCN_LSTM_best.pth.tar' 
+checkpoint = None#'/home/liweijie/projects/SLR/checkpoint/202004132_Phoenix_HCN_LSTM_checkpoint.pth.tar'
 log_interval = 100
 device_list = '3'
 num_workers = 8
@@ -91,6 +92,8 @@ if __name__ == '__main__':
     model = resume_hcn_module(model, hcn_checkpoint)
     if hcn_lstm_ckpt is not None:
         model = resume_hcn_lstm(model,hcn_lstm_ckpt)
+    if mainpart_ckpt is not None:
+        model = resume_main_part(model,mainpart_ckpt)
     if checkpoint is not None:
         start_epoch, best_wer = resume_model(model, checkpoint)
     # Run the model parallelly
