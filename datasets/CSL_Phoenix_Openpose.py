@@ -26,7 +26,8 @@ class CSL_Phoenix_Openpose(Dataset):
                 clip_length=32,
                 stride=4,
                 upsample_rate=2,
-                is_normalize=True):
+                is_normalize=True,
+                is_aug=True):
         super(CSL_Phoenix_Openpose,self).__init__()
         self.skeleton_root = skeleton_root
         self.annotation_file = annotation_file
@@ -35,6 +36,7 @@ class CSL_Phoenix_Openpose(Dataset):
         self.dictionary = dictionary
         self.stride = stride
         self.is_normalize = is_normalize
+        self.is_aug = is_aug
         self.upsample_rate = upsample_rate
         self.prepare()
         self.get_data_list()
@@ -116,6 +118,8 @@ class CSL_Phoenix_Openpose(Dataset):
             skeletons.append(skeletons[-1])
         # After stack, shape is L x J x D, where L is perfectly suit for framing
         data = torch.stack(skeletons, dim=0)
+        if self.is_aug:
+            data = self.augmentation(data)
         # Upsample
         L,J,D = data.size()
         data = data.unsqueeze(0).permute(0,3,1,2)
@@ -155,6 +159,13 @@ class CSL_Phoenix_Openpose(Dataset):
         mat = (mat-[center_x,center_y])/[(max_x-min_x)/2,(max_y-min_y)/2]
         # TEST
         # print("max_x: %.2f,min_x: %.2f,max_y: %.2f,min_y: %.2f"%(max_x,min_x,max_y,min_y))
+        return mat
+
+    def augmentation(self,mat):
+        amp = 0.02
+        d0,d1,d2 = mat.size()
+        jitter = (torch.rand(d0,d1,d2)-0.5)*amp*2
+        mat = mat + jitter
         return mat
 
 def min(array):

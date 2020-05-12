@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, random_split
 import torchvision.transforms as transforms
 from models.HCN_LSTM import hcn_lstm
 from utils.trainUtils import train_hcn_lstm
-from utils.testUtils import test_hcn_lstm
+from utils.testUtils import eval_hcn_lstm,test_hcn_lstm
 from datasets.CSL_Phoenix_Openpose import CSL_Phoenix_Openpose
 from args import Arguments
 from utils.ioUtils import *
@@ -96,8 +96,10 @@ if __name__ == '__main__':
     # Start training
     print("Evaluation Started".center(60, '#'))
     for epoch in range(start_epoch, start_epoch+1):
-        # Test the model
-        wer = test_hcn_lstm(model, criterion, trainloader, device, epoch, log_interval, writer, reverse_dict)
+        # Eval the model
+        eval_hcn_lstm(model, criterion, trainloader, device, epoch, log_interval, writer, reverse_dict)
+        # # Test the model
+        # wer = test_hcn_lstm(model, criterion, testloader, device, epoch, log_interval, writer, reverse_dict)
 
     print("Evaluation Finished".center(60, '#'))
 

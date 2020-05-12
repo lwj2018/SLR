@@ -77,7 +77,7 @@ def train_isolated(model, criterion, optimizer, trainloader, device, epoch, log_
         top1.update(prec1.item())
         top5.update(prec5.item())
 
-        if i % log_interval == log_interval-1:
+        if i==0 or i % log_interval == log_interval-1:
             info = ('Epoch: [{0}][{1}/{2}]\t'
                     'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t'
                     'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t'
