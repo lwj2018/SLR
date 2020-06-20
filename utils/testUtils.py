@@ -2,6 +2,7 @@ import os
 import torch
 import numpy
 import time
+from utils.Recorder import Recorder
 from utils.metricUtils import *
 from utils.textUtils import itos
 
@@ -376,3 +377,46 @@ def vae_lstm_recons(model, testloader, device, log_interval, output_path):
                 numpy.save(input_save_name,input)
                 print("%d/%d saved"%(i,len(testloader)))
 
+def test_text2sign(model, criterion, testloader, device, epoch, log_interval, writer):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    avg_loss = AverageMeter()
+    # Set eval mode
+    model.eval()
+    # Create recorder
+    averagers = [avg_loss]
+    names = ['test loss']
+    recoder = Recorder(averagers,names,writer,batch_time,data_time)
+
+    recoder.tik()
+    recoder.data_tik()
+    with torch.no_grad():
+        for i, data in enumerate(testloader):
+            # measure data loading time
+            recoder.data_tok()
+
+            # get the inputs and labels
+            # shape of input is N x T
+            # shape of tgt is N x T2 x J x D
+            input, tgt = data['input'].to(device), data['tgt'].to(device)
+
+            # forward
+            outputs = model(input, tgt)
+
+            # compute the loss
+            loss = criterion(outputs,tgt[:,1:,:,:])
+
+            # measure elapsed time
+            recoder.tok()
+            recoder.tik()
+            recoder.data_tik()
+
+            # update average value
+            vals = [loss.item()]
+            N = input.size(0)
+            recoder.update(vals,count=N)
+
+            if i==0 or i % log_interval == log_interval-1:
+                recoder.log(epoch,i,len(testloader),mode='Test')
+
+    return avg_loss.avg

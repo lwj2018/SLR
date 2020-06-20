@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 import random
+import pickle
 
 """
 Implementation of Text to Sign Model
@@ -19,6 +20,7 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.enc_hid_dim = enc_hid_dim
         self.dec_hid_dim = dec_hid_dim
+        self.skeleton_dim = skeleton_dim
         self.rnn = nn.LSTM(input_size=self.skeleton_dim,
                           hidden_size=self.enc_hid_dim, bidirectional=True)
         self.fc1 = nn.Linear(2*enc_hid_dim,dec_hid_dim)
@@ -27,8 +29,14 @@ class Encoder(nn.Module):
     def forward(self,x):
         # x: (T1 x N x (JxD))
         # outputs: (T1 x N x (2xenc_hid_dim))
-        # hidden, cell: (N x dec_hid_dim)
+        # hidden, cell: (1 x N x dec_hid_dim)
         outputs, (hidden,cell) = self.rnn(x)
+        hidden = hidden.permute(1,0,2)
+        hidden = hidden.flatten(start_dim=1)
+        hidden = hidden.unsqueeze(0)
+        cell = cell.permute(1,0,2)
+        cell = cell.flatten(start_dim=1)
+        cell = cell.unsqueeze(0)
         hidden = self.fc1(hidden)
         cell = self.fc2(cell)
         return outputs, (hidden,cell)
@@ -40,11 +48,11 @@ class Attention(nn.Module):
 
     def forward(self,encoder_outputs,decoder_hidden):
         # encoder_outputs: (T1 x N x (2xenc_hid_dim))
-        # decoder_hidden: (N x dec_hid_dim)
+        # decoder_hidden: (1 x N x dec_hid_dim)
         # attention: (T1 x N)
         src_len = encoder_outputs.size(0)
-        decoder_hidden_rep = decoder_hidden.unsqueeze(0).repeat(src_len,1,1)
-        energy = self.attn(torch.cat([encoder_outputs,decoder_hidden_rep]))
+        decoder_hidden_rep = decoder_hidden.repeat(src_len,1,1)
+        energy = self.attn(torch.cat([encoder_outputs,decoder_hidden_rep],dim=2))
         attention = torch.sum(energy,dim=2)
         return F.softmax(attention,dim=0)
 
@@ -70,41 +78,47 @@ class Decoder(nn.Module):
     def forward(self, input, velocity, hidden, cell, encoder_outputs):
         # input(N x (JxD)): last skeleton
         # velocity(N x (JxD)): last velocity
-        # hidden(N x dec_hid_dim): last hidden state
-        # cell(N x dec_hid_dim): last cell state
+        # hidden(1 x N x dec_hid_dim): last hidden state
+        # cell(1 x N x dec_hid_dim): last cell state
         # encoder_outputs(T1 x N x (2xenc_hid_dim))
-        input = input.unsqueeze(0)   # add the fake "temporal" dim
-        velocity = velocity.unsqueeze(0)   # add the fake "temporal" dim
         # a: (T1 x N)
         # calculate context vector
-        a = self.attn(encoder_outputs,hidden)
-        context = self.weighted_sum(attention,encoder_outputs)
-        
+        a = self.attention(encoder_outputs,hidden)
+        context = self.weighted_sum(a,encoder_outputs)
+        context = context.permute(1,0,2)
+        # decode one step
+        decoder_input = torch.cat([input,velocity,context],dim=2)
+        outputs, (hidden, cell) = self.rnn(decoder_input, (hidden,cell))
+        outputs = self.fc(outputs)
+        velocity = outputs - input
+        return outputs, velocity, (hidden, cell)
 
 
 class Text2Sign(nn.Module):
-    def __init__(self, encoder, decoder, device, word2gloss_database):
+    def __init__(self, encoder, decoder, word2gloss_database):
         super(Text2Sign, self).__init__()
         self.db = word2gloss_database
         self.encoder = encoder
         self.decoder = decoder
-        self.device = device
 
     def forward(self, text, target, teacher_forcing_ratio=0.5):
         # text: (N x T)
         # target: (N x T2 x J x D)
         # only support N = 1 now
         text = text.squeeze(0)
-        target = target.squeeze(0)
-        trg_len = target.size()[0]
+        trg_len = target.size()[1]
+        # target: (1 x N x T2 x (JxD))
+        target = target.flatten(start_dim=2)
+        target = target.unsqueeze(0) # add the fake "temporal" dim
 
         # transform input text to skeleton sequence of source
         # src: (T1 x J x D)
         src = []
-        for word in range(text):
-            gloss = self.db[word]
+        for word in text:
+            gloss = torch.Tensor(self.db[word.item()])
             src.append(gloss)
         src = torch.cat(src,dim=0)
+        src = src.cuda()
 
         # Encode source sequence
         # src: (T1 x N x (JxD))
@@ -114,55 +128,55 @@ class Text2Sign(nn.Module):
 
         # first input
         # velocity is zero
-        input = target[0]
-        input = input.unsqueeze(0) # add the fake "batch" dim
-        input = input.flatten(start_dim=1)
-        velocity = torch.zeros(input.size())
-        velocity = velocity.unsqueeze(1) # add the fake "batch" dim
+        input = target[:,:,0,:]
+        velocity = torch.zeros(input.size()).cuda()
+
+        outputs = []
 
         for t in range(1, trg_len):
             # decode
             output, velocity, (hidden, cell) = self.decoder(input, velocity, hidden, cell, encoder_outputs)
 
             # store prediction
-            outputs[t] = output
+            outputs.append(output)
 
             # decide whether to do teacher foring
             teacher_force = random.random() < teacher_forcing_ratio
 
-            # get the highest predicted token
-            top1 = output.argmax(1)
-
             # apply teacher forcing
-            input = target[:,t] if teacher_force else top1
+            gt = target[:,:,t,:]
+            velocity = gt-input if teacher_force else velocity
+            input    = gt if teacher_force else output
 
+        # outputs: (T2 x N x (JxD))
+        outputs = torch.cat(outputs,dim=0)
+        outputs = outputs.reshape(-1,outputs.size(1),joint,dimension)
+        outputs = outputs.transpose(0,1)
         return outputs
 
 
 # Test
 if __name__ == '__main__':
     # test encoder
-    encoder = Encoder(lstm_hidden_size=512)
-    # imgs = torch.randn(16, 3, 8, 128, 128)
-    # print(encoder(imgs))
-
-    # test encoderPlus
-    encoderPlus = EncoderPlus(lstm_hidden_size=512)
-    # imgs = torch.randn(16, 3, 8, 128, 128)
-    # print(encoderPlus(imgs))
+    encoder = Encoder()
+    # x = torch.randn(200,1,joint*dimension)
+    # outputs, (hidden, cell) = encoder(x)
+    # print(f"{outputs} {hidden} {cell}")
 
     # test decoder
-    decoder = Decoder(output_dim=500, emb_dim=256, enc_hid_dim=512, dec_hid_dim=512, dropout=0.5)
-    # input = torch.LongTensor(16).random_(0, 500)
-    # hidden = torch.randn(16, 512)
-    # cell = torch.randn(16, 512)
-    # context = torch.randn(16, 512)
-    # print(decoder(input, hidden, cell, context))
+    decoder = Decoder()
+    # input = torch.randn(1,joint*dimension)
+    # velocity = torch.randn(1,joint*dimension)
+    # hidden = torch.randn(1,1,2*e_dim)
+    # cell = torch.randn(1,1,2*e_dim)
+    # encoder_outputs = torch.randn(200,1,2*e_dim)
+    # outputs, velocity, (hidden,cell) = decoder(input,velocity,hidden,cell,encoder_outputs)
 
-    # test seq2seq
-    device = torch.device("cpu")
-    # seq2seq = Seq2Seq(encoder=encoder, decoder=decoder, device=device)
-    seq2seq = Seq2Seq(encoder=encoderPlus, decoder=decoder, device=device)
-    imgs = torch.randn(16, 3, 8, 128, 128)
-    target = torch.LongTensor(16, 8).random_(0, 500)
-    print(seq2seq(imgs, target).argmax(dim=2).permute(1,0)) # batch first
+    # # test seq2seq
+    db_file = open('/home/liweijie/projects/SLR/obj/word2gloss.pkl','rb')
+    database = pickle.load(db_file)
+    text2sign = Text2Sign(encoder=encoder, decoder=decoder, word2gloss_database=database)
+    text = torch.LongTensor(1, 16).random_(0, 500)
+    target = torch.randn(1,300,joint,dimension)
+    outputs = text2sign(text,target)
+    print(outputs.size())

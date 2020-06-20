@@ -1,5 +1,6 @@
 '''
     return skeleton sequence with full length
+    only reserve the main part of skeleton without face
 '''
 import torch.utils.data as data
 
@@ -85,7 +86,9 @@ class CSL_Isolated_Openpose_fl(data.Dataset):
         if self.is_remove_two_end:
             mat = self.remove_two_end(mat)
         # 4x downsample
-        mat = mat[::4,:,:]
+        mat = mat[::2,:,:]
+        # remove face
+        mat = np.concatenate([mat[:,:25,:],mat[:,95:,:]],1)
         end = time.time()
         # print('%.4f s'%(end-start))
         # Shape of mat is : T * J * D

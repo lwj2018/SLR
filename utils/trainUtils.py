@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import time
 from utils.metricUtils import *
 from utils.textUtils import itos
+from utils.Recorder import Recorder
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils import clip_grad_norm
 
@@ -184,6 +185,10 @@ def train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_
     avg_bleu = AverageMeter()
     # Set trainning mode
     model.train()
+    # Create recorder
+    averagers = [avg_loss, avg_acc, avg_wer]
+    names = ['train loss','train acc','train wer']
+    recoder = Recorder(averagers,names,writer,batch_time,data_time)
 
     end = time.time()
     for i, data in enumerate(trainloader):
@@ -250,3 +255,52 @@ def train_hcn_lstm(model, criterion, optimizer, trainloader, device, epoch, log_
             losses.reset()
             avg_wer.reset()
             avg_bleu.reset()
+
+def train_text2sign(model, criterion, optimizer, trainloader, device, epoch, log_interval, writer):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    avg_loss = AverageMeter()
+    # Set trainning mode
+    model.train()
+    # Create recorder
+    averagers = [avg_loss]
+    names = ['train loss']
+    recoder = Recorder(averagers,names,writer,batch_time,data_time)
+
+    recoder.tik()
+    recoder.data_tik()
+    for i, data in enumerate(trainloader):
+        # measure data loading time
+        recoder.data_tok()
+
+        # get the inputs and labels
+        # shape of input is N x T
+        # shape of tgt is N x T2 x J x D
+        input, tgt = data['input'].to(device), data['tgt'].to(device)
+
+        optimizer.zero_grad()
+        # forward
+        outputs = model(input, tgt)
+
+        # compute the loss
+        # tgt = pack_padded_sequence(tgt,tgt_len_list)
+        loss = criterion(outputs,tgt[:,1:,:,:])
+        # backward & optimize
+        loss.backward()
+
+        optimizer.step()
+
+        # measure elapsed time
+        recoder.tok()
+        recoder.tik()
+        recoder.data_tik()
+
+        # update average value
+        vals = [loss.item()]
+        N = input.size(0)
+        recoder.update(vals,count=N)
+
+        if i==0 or i % log_interval == log_interval-1:
+            recoder.log(epoch,i,len(trainloader))
+            # Reset average meters 
+            recoder.reset() 

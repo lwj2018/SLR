@@ -4,6 +4,7 @@ class Recorder:
         batch_timer=None,data_timer=None):
         self.averagers = averagers
         self.names = names
+        self.writer = writer
         self.batch_timer = batch_timer
         self.data_timer = data_timer
 
@@ -21,9 +22,8 @@ class Recorder:
 
     def log(self,epoch,iter,l,mode='Train'):
         # log to terminal
-        if mode!='Train':
-            prefix = '[' + mode + '] '
-        info = prefix + '[{0}][{1}/{2}]\t'.format(epoch,i,l)
+        prefix = '[' + mode + '] '
+        info = prefix + '[{0}][{1}/{2}]\t'.format(epoch,iter,l)
         if self.batch_timer is not None:
             info = info + 'Time {timer.avg:.3f}s\t'.format(timer=self.batch_timer)
         if self.data_timer is not None:
@@ -33,7 +33,7 @@ class Recorder:
         print(info)
         # log to tensorboard
         for name, averager in zip(self.names,self.averagers):
-            writer.add_scalar(name,
+            self.writer.add_scalar(name,
                     averager.avg,
                     epoch * l + iter)
 
@@ -52,3 +52,9 @@ class Recorder:
         self.data_end = time.time()
         delta = self.data_end - self.data_start
         self.data_timer.update(delta)
+
+    def get_avg(self, query_name):
+        for name, averager in zip(self.names,self.averagers):
+            if name == query_name:
+                return averager.avg
+        return -1
