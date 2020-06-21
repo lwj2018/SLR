@@ -119,6 +119,7 @@ runs
 *.csv
 scripts/01April_2010_Thursday_heute_default-0
 scripts/vae_generate
+scripts/t2s_gen
 scripts/test.ipynb
 *vae_generate*
 *csl/P42*

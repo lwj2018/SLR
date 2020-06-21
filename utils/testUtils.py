@@ -5,6 +5,7 @@ import time
 from utils.Recorder import Recorder
 from utils.metricUtils import *
 from utils.textUtils import itos
+from utils.ioUtils import create_path
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -401,10 +402,16 @@ def test_text2sign(model, criterion, testloader, device, epoch, log_interval, wr
             input, tgt = data['input'].to(device), data['tgt'].to(device)
 
             # forward
-            outputs = model(input, tgt)
+            outputs = model(input, tgt, 0)
 
             # compute the loss
             loss = criterion(outputs,tgt[:,1:,:,:])
+            # out_path = './obj/t2s_gen'
+            # if i==0:
+            #     create_path(out_path)
+            #     numpy.save(os.path.join(out_path,'output.npy'),outputs.data.cpu().numpy())
+            #     numpy.save(os.path.join(out_path,'tgt.npy'),tgt[:,1:,:,:].data.cpu().numpy())
+            #     print("Save complete")
 
             # measure elapsed time
             recoder.tok()
